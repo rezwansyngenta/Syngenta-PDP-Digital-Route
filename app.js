@@ -171,8 +171,14 @@ async function refreshScatter() {
   }
 }
 
-bindFile('gpsFile', 'gpsName', () => refreshScatter());
-bindFile('orderFile', 'orderName', () => refreshScatter());
+let scatterTimer = null;
+function queueScatter() {
+  clearTimeout(scatterTimer);
+  scatterTimer = setTimeout(refreshScatter, 120);
+}
+
+bindFile('gpsFile', 'gpsName', () => queueScatter());
+bindFile('orderFile', 'orderName', () => queueScatter());
 
 /* ---------------- worker ---------------- */
 function getWorker() {

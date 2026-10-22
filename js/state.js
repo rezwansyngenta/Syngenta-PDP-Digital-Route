@@ -161,7 +161,6 @@ export function trySetStatus(plan, routeId, status, opts = {}) {
   const blockers = [];
   const route = plan.routes.find(r => r.id === routeId);
   if (!route) return { ok: false, blockers: ['Route not found'] };
-  
   if (!STATUSES.includes(status)) {
     return { ok: false, blockers: ['Invalid status'] };
   }
@@ -197,6 +196,7 @@ export function trySetStatus(plan, routeId, status, opts = {}) {
   }
   
   const before = { km: route.distance, MT: route.volume, cr: route.value / 1e7, status: route.status };
+  pushUndo(plan, { type: `status:${status}` });
   route.status = status;
   if (status === 'Approved exception') {
     route.reasonCategory = opts.reasonCategory;

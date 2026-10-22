@@ -25,9 +25,14 @@ export function bannerCopy(kind) { return BANNERS[kind] || ''; }
 
 let districtsLayer = null;
 
+export function tileLayer(map) {
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19 }).addTo(map);
+}
+
 export function initMap(containerId, warehouse) {
   const map = L.map(containerId, { zoomControl: false }).setView([warehouse.lat, warehouse.lon], 10);
   L.control.scale().addTo(map);
+  tileLayer(map);
   if (!districtsLayer) {
     fetch('./assets/districts.geojson')
       .then((r) => r.json())

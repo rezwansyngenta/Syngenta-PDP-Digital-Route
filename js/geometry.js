@@ -89,7 +89,7 @@ export async function fetchRouteLegs(warehouse, route, customerCoords, { osrm, c
   const points = [];
   // build sequence WH -> ... 
   const seq = ['WH', ...ids];
-  const coords = { WH: warehouse };
+  const coords = { WH: Array.isArray(warehouse) ? warehouse : [warehouse.lat, warehouse.lon] };
   for (let i = 0; i < ids.length; i++) {
     if (customerCoords && customerCoords[ids[i]]) coords[ids[i]] = customerCoords[ids[i]];
     else if (route.customers[i] && route.customers[i].lat) coords[ids[i]] = [route.customers[i].lat, route.customers[i].lon];
@@ -113,7 +113,7 @@ export async function fetchRouteLegs(warehouse, route, customerCoords, { osrm, c
     // try osrm
     if (osrm && typeof osrm.route === 'function') {
       try {
-        const res = await osrm.route([[fromC[1], fromC[0]], [toC[1], toC[0]]]);
+        const res = await osrm.route([fromC, toC]);
         if (res && res.ok && res.km) {
           const leg = { points: res.points || [[fromC[0], fromC[1]], [toC[0], toC[1]]], km: res.km, durationS: res.durationS || 0, ok: true, from: fromId, to: toId };
           legs.push(leg);
