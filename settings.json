@@ -10,5 +10,10 @@
   "country": "Bangladesh",
   "osrm_endpoint": "https://router.project-osrm.org",
   "osrm_table_chunk": 50,
-  "max_candidates": 15000
+  "max_candidates": 15000,
+  "routing_engine_version": "osrm-dev-v1",
+  "routing_profile": "car",
+  "restriction_version": "v0",
+  "include_gmaps_links": false
+
 }

@@ -202,7 +202,14 @@ self.onmessage = async (ev) => {
       r.gmaps_url = 'https://www.google.com/maps/dir/' + parts.join('/');
     }
 
-    post({ type: 'done', data, result, settings: { cap, vMin, pMinCr: pMin / 10_000_000 } });
+    post({ type: 'done', data, result,
+      settings: { cap, vMin, pMinCr: pMin / 10_000_000 },
+      routingMeta: {
+        engineVersion: settings.routing_engine_version || (endpoint.includes('project-osrm.org') ? 'public-osrm-dev' : 'local-osrm'),
+        profile: settings.routing_profile || 'car',
+        restrictionVersion: settings.restriction_version || 'v0',
+        osrmEndpoint: endpoint,
+      } });
   } catch (err) {
     if (signal.aborted) post({ type: 'aborted' });
     else post({ type: 'error', message: String((err && err.message) || err) });
