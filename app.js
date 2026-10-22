@@ -558,7 +558,7 @@ function renderMap() {
       const cc = byId.get(c.id);
       const mk = L.marker([cc.lat, cc.lon], { icon: stopIcon(j + 1, col), zIndexOffset: 500 }).addTo(m);
       mk.bindPopup(bpPopup(cc, i, j));
-      mk.bindTooltip(bpPopup(cc, i, j), { sticky: true, direction: 'top', opacity: 0.95, className: 'cust-tooltip' });
+      mk.bindTooltip(bpPopup(cc, i, j), { sticky: true, direction: 'top', opacity: 0.95, className: 'cust-tooltip', interactive: true });
       mk.on('mouseover', function() { this.openTooltip(); });
       mk.on('mouseout', function() { this.closeTooltip(); });
       mk.on('click', (e) => {
@@ -581,16 +581,8 @@ function renderMap() {
 
   renderLayers();
 
-  $('legendbar').innerHTML = RESULT.routes.map((r, i) =>
-    `<span style="cursor:pointer" data-legend-i="${i}"><i class="swatch" style="background:${COLORS[i % COLORS.length]}"></i>R${String(i + 1).padStart(2, '0')} · ${r.distance.toFixed(0)} km (${r.customers.length})</span>`).join('');
-  
-  // Make legend clickable
-  $('legendbar').querySelectorAll('[data-legend-i]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const idx = Number(el.dataset.legendI);
-      if (mapState.map) { selectRoute(idx); }
-    });
-  });
+  const lb = $('legendbar');
+  if (lb) lb.innerHTML = '';
 
   fitAll();
   if (selectedRoute != null && RESULT.routes[selectedRoute]) {
@@ -615,7 +607,7 @@ function renderLayers() {
       const mk = L.circleMarker([c.lat, c.lon], { radius, color: col, fillColor: col, fillOpacity: 0.65, weight: 1 });
       const j = ri >= 0 ? RESULT.routes[ri].customers.findIndex((x) => x.id === c.id) : null;
       mk.bindPopup(bpPopup(c, ri >= 0 ? ri : null, j));
-      mk.bindTooltip(bpPopup(c, ri >= 0 ? ri : null, j), { sticky: true, direction: 'top', opacity: 0.95, className: 'cust-tooltip' });
+      mk.bindTooltip(bpPopup(c, ri >= 0 ? ri : null, j), { sticky: true, direction: 'top', opacity: 0.95, className: 'cust-tooltip', interactive: true });
       mk.on('mouseover', function() { this.openTooltip(); });
       mk.on('mouseout', function() { this.closeTooltip(); });
       mk.on('click', () => { if (ri >= 0) { selectRoute(ri); if (j >= 0) focusStop(ri, j); mk.openPopup(); } else { mk.openPopup(); } });

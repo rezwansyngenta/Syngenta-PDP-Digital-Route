@@ -279,52 +279,45 @@ tbody tr.thisrow{background:var(--lime-soft)}
     <div class="grid kpis" id="kpis"></div>
 
     <div class="seclab">Routes &amp; Map</div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="cardhead"><h2>Selected route</h2><span class="note">Details, stops and navigation</span>
+    <div class="card" style="margin-bottom:10px">
+      <div class="cardhead"><h2>Selected route</h2><span class="note">Click any route line or stop on the map to inspect. Use the list below only if needed.</span>
         <div class="spacer"></div><span class="note" id="routeCount"></span></div>
       <div class="cardbody"><div class="detail" id="detail" style="margin-top:0"></div></div>
     </div>
-    <div class="workspace">
-      <div class="mapcol">
-        <div class="card" style="position:sticky;top:70px">
-          <div class="maptools">
-            <div class="search">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="color:var(--text-3)"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-              <input type="text" id="searchBox" list="bpList" placeholder="Search BP ID or customer name" aria-label="Search">
-              <datalist id="bpList"></datalist>
-            </div>
-            <div class="layers">
-              <label><input type="checkbox" id="lyr-all"> All customers</label>
-              <label><input type="checkbox" id="lyr-gps"> No order this batch</label>
-              <label><input type="checkbox" id="lyr-exc" checked> Unassigned</label>
-            </div>
-          </div>
-          <div class="mapwrap">
-            <div id="map"></div>
-            <div class="mapctl">
-              <button type="button" title="Zoom in" id="ctl-in">&#43;</button>
-              <button type="button" title="Zoom out" id="ctl-out">&#8722;</button>
-              <button type="button" id="ctl-routes" class="on" title="Show all routes">&#10095;</button>
-              <button type="button" id="ctl-fit" title="Fit all routes">&#8962;</button>
-            </div>
-            <div class="legendbar" id="legendbar"></div>
-          </div>
+    <div class="card">
+      <div class="maptools">
+        <div class="search">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="color:var(--text-3)"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <input type="text" id="searchBox" list="bpList" placeholder="Search BP ID or customer name" aria-label="Search">
+          <datalist id="bpList"></datalist>
+        </div>
+        <div class="layers">
+          <label><input type="checkbox" id="lyr-all"> All customers</label>
+          <label><input type="checkbox" id="lyr-gps"> No order this batch</label>
+          <label><input type="checkbox" id="lyr-exc" checked> Unassigned</label>
         </div>
       </div>
-      <div class="routecol">
-        <div class="card" style="position:sticky;top:70px;max-height:calc(100vh - 90px);display:flex;flex-direction:column">
-          <div class="cardhead">
-            <h2>Route list</h2>
-            <div class="spacer"></div>
-            <span class="note">Click a route to inspect it</span>
-          </div>
-          <div class="tablewrap" style="max-height:calc(100vh - 170px);overflow:auto">
-            <table>
-              <thead><tr><th>Route</th><th>Stops</th><th>Volume</th><th>Value</th><th>Road km</th><th>PDP</th></tr></thead>
-              <tbody id="routeBody"></tbody>
-            </table>
-          </div>
+      <div class="mapwrap" style="min-height:640px">
+        <div id="map" style="height:640px"></div>
+        <div class="mapctl">
+          <button type="button" title="Zoom in" id="ctl-in">&#43;</button>
+          <button type="button" title="Zoom out" id="ctl-out">&#8722;</button>
+          <button type="button" id="ctl-routes" class="on" title="Show all routes">&#10095;</button>
+          <button type="button" id="ctl-fit" title="Fit all routes">&#8962;</button>
         </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="cardhead">
+        <h2>All routes (quick view)</h2>
+        <div class="spacer"></div>
+        <span class="note">Click to select</span>
+      </div>
+      <div class="tablewrap" style="max-height:320px;overflow:auto">
+        <table>
+          <thead><tr><th>Route</th><th>Stops</th><th>Volume</th><th>Value</th><th>Road km</th><th>PDP</th></tr></thead>
+          <tbody id="routeBody"></tbody>
+        </table>
       </div>
     </div>
 
