@@ -10,7 +10,7 @@ let worker = null;
 let busy = false;
 
 const PDP = { pmin: 10, vmin: 12, cap: 12 };
-const mapState = { map: null, lines: {}, markers: {}, un: [], districts: null };
+const mapState = { map: null, lines: {}, markers: {}, un: [], districts: null, whMarker: null };
 let selectedRoute = null;
 let layerAll = false, layerGps = false, layerExc = true;
 let corridorOn = false, corridorW = 2;
@@ -505,9 +505,9 @@ const bpPopup = (c, i, j) => {
 function clearMap() {
   const { map } = mapState;
   if (!map) return;
-  Object.values(mapState.lines).forEach((l) => { if (map.hasLayer(l)) map.removeLayer(l); });
-  Object.values(mapState.markers).forEach((arr) => arr.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); }));
-  mapState.un.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); });
+  Object.values(mapState.lines).forEach((l) => { try { if (map.hasLayer(l)) map.removeLayer(l); } catch {} });
+  Object.values(mapState.markers).forEach((arr) => (arr || []).forEach((m) => { try { if (map.hasLayer(m)) map.removeLayer(m); } catch {} }));
+  (mapState.un || []).forEach((m) => { try { if (map.hasLayer(m)) map.removeLayer(m); } catch {} });
   mapState.un = [];
   mapState.lines = {};
   mapState.markers = {};
@@ -521,6 +521,7 @@ function renderMap() {
     fetch('./assets/districts.geojson')
       .then((r) => r.json())
       .then((g) => {
+        if (!mapState.map) return;
         mapState.districts = L.geoJSON(g, {
           style: { color: '#99E36D', weight: 0.5, opacity: 0.45, fillColor: '#7FDE44', fillOpacity: 0.02 },
           onEachFeature: (f, layer) => {
@@ -535,7 +536,11 @@ function renderMap() {
   const byId = byIdMap();
   const m = mapState.map;
 
-  L.marker([DATA.warehouse.lat, DATA.warehouse.lon], { icon: whIcon() })
+  // Clear existing route layers/markers before re-render
+  clearMap();
+
+  if (mapState.whMarker && m.hasLayer(mapState.whMarker)) m.removeLayer(mapState.whMarker);
+  mapState.whMarker = L.marker([DATA.warehouse.lat, DATA.warehouse.lon], { icon: whIcon(), zIndexOffset: 1000 })
     .addTo(m)
     .bindPopup(`<b>${esc(DATA.warehouse.name)}</b><br>Origin of every route`);
 
@@ -543,14 +548,25 @@ function renderMap() {
     const col = COLORS[i % COLORS.length];
     const pts = [[DATA.warehouse.lat, DATA.warehouse.lon]]
       .concat(r.customers.map((c) => [byId.get(c.id).lat, byId.get(c.id).lon]));
-    const line = L.polyline(pts, { color: col, weight: 3, opacity: 0.85 }).addTo(m);
-    line.on('click', () => selectRoute(i));
+    const line = L.polyline(pts, { color: col, weight: 4, opacity: 0.9, className: `route-line route-${i}` }).addTo(m);
+    line.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
+      selectRoute(i);
+    });
     mapState.lines[i] = line;
     mapState.markers[i] = r.customers.map((c, j) => {
       const cc = byId.get(c.id);
-      const mk = L.marker([cc.lat, cc.lon], { icon: stopIcon(j + 1, col) }).addTo(m);
+      const mk = L.marker([cc.lat, cc.lon], { icon: stopIcon(j + 1, col), zIndexOffset: 500 }).addTo(m);
       mk.bindPopup(bpPopup(cc, i, j));
-      mk.on('click', () => selectRoute(i));
+      mk.bindTooltip(bpPopup(cc, i, j), { sticky: true, direction: 'top', opacity: 0.95, className: 'cust-tooltip' });
+      mk.on('mouseover', function() { this.openTooltip(); });
+      mk.on('mouseout', function() { this.closeTooltip(); });
+      mk.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        selectRoute(i);
+        focusStop(i, j);
+        mk.openPopup();
+      });
       return mk;
     });
   });
@@ -558,17 +574,28 @@ function renderMap() {
   RESULT.unassigned.forEach((u) => {
     const c = byId.get(u.customerId);
     if (!c) return;
-    const mk = L.circleMarker([c.lat, c.lon], { radius: 7, color: '#F70566', fillColor: '#F70566', fillOpacity: 0.6 }).addTo(m);
+    const mk = L.circleMarker([c.lat, c.lon], { radius: 7, color: '#F70566', fillColor: '#F70566', fillOpacity: 0.6, zIndexOffset: 300 }).addTo(m);
     mk.bindPopup(`${bpPopup(c)}<br>Reason: ${esc(u.reason)}`);
     mapState.un.push(mk);
   });
 
   renderLayers();
 
-  $('legendbar').innerHTML = RESULT.routes.slice(0, 12).map((r, i) =>
-    `<span><i class="swatch" style="background:${COLORS[i % COLORS.length]}"></i>R${String(i + 1).padStart(2, '0')} · ${r.distance.toFixed(0)} km</span>`).join('');
+  $('legendbar').innerHTML = RESULT.routes.map((r, i) =>
+    `<span style="cursor:pointer" data-legend-i="${i}"><i class="swatch" style="background:${COLORS[i % COLORS.length]}"></i>R${String(i + 1).padStart(2, '0')} · ${r.distance.toFixed(0)} km (${r.customers.length})</span>`).join('');
+  
+  // Make legend clickable
+  $('legendbar').querySelectorAll('[data-legend-i]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.dataset.legendI);
+      if (mapState.map) { selectRoute(idx); }
+    });
+  });
 
   fitAll();
+  if (selectedRoute != null && RESULT.routes[selectedRoute]) {
+    selectRoute(selectedRoute);
+  }
 }
 
 /* layers */
@@ -585,10 +612,13 @@ function renderLayers() {
       const ri = routeOfId(c.id);
       const col = ri >= 0 ? COLORS[ri % COLORS.length] : '#8E8E93';
       const radius = 3 + Math.min(6, c.orderVolume * 1.5);
-      const mk = L.circleMarker([c.lat, c.lon], { radius, color: col, fillColor: col, fillOpacity: 0.55, weight: 1 });
+      const mk = L.circleMarker([c.lat, c.lon], { radius, color: col, fillColor: col, fillOpacity: 0.65, weight: 1 });
       const j = ri >= 0 ? RESULT.routes[ri].customers.findIndex((x) => x.id === c.id) : null;
       mk.bindPopup(bpPopup(c, ri >= 0 ? ri : null, j));
-      mk.on('click', () => { if (ri >= 0) selectRoute(ri); });
+      mk.bindTooltip(bpPopup(c, ri >= 0 ? ri : null, j), { sticky: true, direction: 'top', opacity: 0.95, className: 'cust-tooltip' });
+      mk.on('mouseover', function() { this.openTooltip(); });
+      mk.on('mouseout', function() { this.closeTooltip(); });
+      mk.on('click', () => { if (ri >= 0) { selectRoute(ri); if (j >= 0) focusStop(ri, j); mk.openPopup(); } else { mk.openPopup(); } });
       return mk;
     })).addTo(map);
   }

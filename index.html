@@ -11,6 +11,8 @@
 <link rel="icon" href="assets/route-square.svg" type="image/svg+xml">
 <style>
 @font-face{font-family:'Montserrat';font-style:normal;font-weight:100 900;font-display:swap;src:url('assets/Montserrat-Variable.woff2') format('woff2-variations');}
+.leaflet-tooltip.cust-tooltip{background:var(--surface);color:var(--text);border:1px solid var(--sep);border-radius:8px;padding:6px 8px;font-size:11.5px;box-shadow:var(--shadow);line-height:1.4}
+.leaflet-tooltip.cust-tooltip:before{border-top-color:var(--sep)}
 :root{
   color-scheme: light;
   --g1:#7FDE44; --g2:#99E36D; --g3:#AAE683;
@@ -70,23 +72,23 @@ button{font:inherit;color:inherit}
 .themebtn:focus-visible{outline:none;box-shadow:var(--ring)}
 
 main{padding:0 max(20px, calc((100vw - 1280px))/2) 64px}
-.head{padding:22px 0 18px}
-.head h1{font-size:26px;font-weight:700;letter-spacing:-.025em}
-.head p{font-size:13.5px;color:var(--text-2);margin-top:5px}
+.head{padding:16px 0 12px}
+.head h1{font-size:24px;font-weight:700;letter-spacing:-.025em}
+.head p{font-size:13px;color:var(--text-2);margin-top:4px}
 .card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
-.cardhead{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--sep);flex-wrap:wrap}
-.cardhead h2{font-size:15px;font-weight:650;letter-spacing:-.01em}
-.cardhead .note{font-size:12px;color:var(--text-3)}
+.cardhead{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--sep);flex-wrap:wrap}
+.cardhead h2{font-size:14.5px;font-weight:650;letter-spacing:-.01em}
+.cardhead .note{font-size:11.5px;color:var(--text-3)}
 .cardhead .spacer{flex:1}
-.cardbody{padding:18px 20px}
+.cardbody{padding:14px 16px}
 .grid{display:grid;gap:16px}
 .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:460px){.kpis{grid-template-columns:1fr}}
-.kpi{padding:16px 18px}
-.kpi .lab{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3)}
-.kpi .val{font-size:26px;font-weight:700;letter-spacing:-.025em;margin-top:9px;line-height:1.1}
-.kpi .dl{font-size:12px;color:var(--text-2);margin-top:7px;display:flex;align-items:center;gap:5px}
+.kpi{padding:14px 16px}
+.kpi .lab{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3)}
+.kpi .val{font-size:24px;font-weight:700;letter-spacing:-.025em;margin-top:7px;line-height:1.1}
+.kpi .dl{font-size:11.5px;color:var(--text-2);margin-top:6px;display:flex;align-items:center;gap:5px}
 .dotc{width:8px;height:8px;border-radius:50%;flex:none}
 .kpi.accent{background:linear-gradient(135deg,var(--g1),var(--g3));border:none;color:#0E1A06}
 .kpi.accent .lab,.kpi.accent .dl{color:#2C4A15}
@@ -276,14 +278,14 @@ tbody tr.thisrow{background:var(--lime-soft)}
     <div class="grid kpis" id="kpis"></div>
 
     <div class="seclab">Routes &amp; Map</div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card" style="margin-bottom:12px">
       <div class="cardhead"><h2>Selected route</h2><span class="note">Details, stops and navigation</span>
         <div class="spacer"></div><span class="note" id="routeCount"></span></div>
       <div class="cardbody"><div class="detail" id="detail" style="margin-top:0"></div></div>
     </div>
     <div class="workspace">
       <div class="mapcol">
-        <div class="card" style="position:sticky;top:80px">
+        <div class="card" style="position:sticky;top:70px">
           <div class="maptools">
             <div class="search">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="color:var(--text-3)"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
@@ -309,13 +311,13 @@ tbody tr.thisrow{background:var(--lime-soft)}
         </div>
       </div>
       <div class="routecol">
-        <div class="card">
+        <div class="card" style="position:sticky;top:70px;max-height:calc(100vh - 90px);display:flex;flex-direction:column">
           <div class="cardhead">
             <h2>Route list</h2>
             <div class="spacer"></div>
             <span class="note">Click a route to inspect it</span>
           </div>
-          <div class="tablewrap">
+          <div class="tablewrap" style="max-height:calc(100vh - 170px);overflow:auto">
             <table>
               <thead><tr><th>Route</th><th>Stops</th><th>Volume</th><th>Value</th><th>Road km</th><th>PDP</th></tr></thead>
               <tbody id="routeBody"></tbody>

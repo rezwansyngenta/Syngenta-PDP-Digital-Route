@@ -89,12 +89,23 @@ self.onmessage = async (ev) => {
         const route = result.routes[i];
         const order = route.customers.map((c) => c.id);
         const origDistance = routeDistance(order, dm);
-        const better = optimizeOrder(order, dm, 4000);
+        let bestOrder = order.slice();
+        let bestDist = origDistance;
+        // try multiple seeds for better global optimum
+        for (let s = 0; s < 4; s++) {
+          const candOrder = optimizeOrder(order, dm, 8000, 42 + s * 131542391);
+          const cd = routeDistance(candOrder, dm);
+          if (cd < bestDist) { bestDist = cd; bestOrder = candOrder; }
+        }
+        // final intensive polish
+        const better = optimizeOrder(bestOrder, dm, 10000, 99991);
+        const bd = routeDistance(better, dm);
+        if (bd < bestDist) { bestDist = bd; bestOrder = better; }
         const byId = new Map(route.customers.map((c) => [c.id, c]));
         route.orig_order = order;
         route.orig_distance = origDistance;
-        route.customers = better.map((id) => byId.get(id));
-        route.distance = routeDistance(better, dm);
+        route.customers = bestOrder.map((id) => byId.get(id));
+        route.distance = routeDistance(bestOrder, dm);
         if (i % 10 === 0) progress('optimise', `Optimising stop sequence… ${i + 1}/${result.routes.length}`);
       }
       result.totalDistance = Math.round(result.routes.reduce((a, r) => a + r.distance, 0) * 100) / 100;
