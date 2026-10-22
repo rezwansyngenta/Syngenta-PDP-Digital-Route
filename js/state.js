@@ -489,7 +489,7 @@ export function directedRouteKm(ids, dm) {
   return Math.round(total * 100) / 100;
 }
 
-function bestInsertDelta(targetIds, id, dm) {
+export function bestInsertDelta(targetIds, id, dm) {
   let best = null;
   const base = directedRouteKm(targetIds, dm);
   if (base == null) return null;

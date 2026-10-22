@@ -21,6 +21,7 @@ export function actionsForStatus(route, { hasException = false } = {}) {
   if (s === 'Needs revision') {
     return [
       { act: 'optimise', label: 'Optimise sequence', cls: 'primary' },
+      { act: 'suggestMerge', label: 'Suggest merge', cls: 'ghost' },
       { act: 'ready', label: 'Mark ready after review', cls: 'ghost' },
       { act: 'reopen', label: 'Return to pending review', cls: 'ghost' },
     ];

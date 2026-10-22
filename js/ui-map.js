@@ -165,4 +165,8 @@ export function setBanners({ fallback = false, profile = false } = {}) {
   if (profile) html += `<div class="banner banner-profile">${bannerCopy('profile')}<button type="button" class="bnr-x" data-bnr-close>✕</button></div>`;
   el.innerHTML = html;
   el.hidden = html === '';
+  el.querySelectorAll('[data-bnr-close]').forEach((b) => b.addEventListener('click', () => {
+    b.closest('.banner')?.remove();
+    el.hidden = !el.querySelector('.banner');
+  }));
 }
