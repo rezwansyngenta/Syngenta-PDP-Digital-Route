@@ -14,6 +14,7 @@
   "routing_engine_version": "osrm-dev-v1",
   "routing_profile": "car",
   "restriction_version": "v0",
-  "include_gmaps_links": false
-
+  "prefer_local_matrix": true,
+  "local_matrix_path": "data/road_matrix_cache.json",
+  "include_gmaps_links": true
 }

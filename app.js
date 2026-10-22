@@ -369,6 +369,8 @@ async function selectRoute(i, { keepOverview = false } = {}) {
   try {
     const res = await fetchRouteLegs(DATA.warehouse, route, coordsById(), {
       osrm: legOsrm(),
+      mode: SETTINGS.prefer_local_matrix === false ? null : 'local-matrix',
+      distMatrix: DATA.distMatrix,
       meta: {
         engineVersion: ROUTING_META?.engineVersion || plan.meta?.engineVersion || 'v0',
         profile: ROUTING_META?.profile || plan.meta?.profile || 'car',

@@ -109,14 +109,16 @@ export function showRoute(map, warehouse, route, legs, { labelsById = new Map(),
   let nearPt = [warehouse.lat, warehouse.lon];
 
   (legs || []).forEach((leg) => {
+    // straight legs (local matrix mode): real km but no drawn road geometry
+    const straight = leg.straight === true;
     const line = L.polyline(leg.points, {
-      color: leg.ok ? '#C40056' : '#8E8E93',
-      weight: leg.ok ? 5 : 3,
-      opacity: leg.ok ? 0.9 : 0.8,
-      dashArray: leg.ok ? null : '6 8',
+      color: leg.ok ? (straight ? '#8A1C4A' : '#C40056') : '#8E8E93',
+      weight: leg.ok ? 4 : 3,
+      opacity: leg.ok ? (straight ? 0.65 : 0.9) : 0.8,
+      dashArray: leg.ok ? (straight ? '10 10' : null) : '6 8',
       className: 'route-leg',
-    }).addTo(group).bindTooltip(`${leg.from} → ${leg.to} · ${Number(leg.km).toFixed(1)} km${leg.ok ? '' : ' (straight-line)'} `, { sticky: true });
-    if (leg.ok) line.setStyle({ opacity: 0.95 });
+    }).addTo(group).bindTooltip(`${leg.from} → ${leg.to} · ${Number(leg.km).toFixed(1)} km${straight ? ' · direct line (view real roads in Google Maps)' : leg.ok ? '' : ' (straight-line)'}`, { sticky: true });
+    if (leg.ok) line.setStyle({ opacity: straight ? 0.7 : 0.95 });
     nearPt = leg.points[leg.points.length - 1] || nearPt;
   });
 

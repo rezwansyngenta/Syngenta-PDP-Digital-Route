@@ -78,7 +78,39 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
-export async function fetchRouteLegs(warehouse, route, customerCoords, { osrm, cache, meta = {} } = {}) {
+/**
+ * Straight legs WM -> stops with km taken from the authoritative directed
+ * matrix (local validated road km). No OSRM geometry: leg paths that cross
+ * borders are not shown as route paths. `straight` legs render dashed.
+ */
+export function buildLegsFromMatrix(warehouse, route, customerCoords, dm) {
+  if (!route || !Array.isArray(route.customers) || route.customers.length === 0) {
+    return { legs: [], hasFallbackLegs: false, source: 'local-matrix-straight' };
+  }
+  const ids = route.customers.map(c => typeof c === 'string' ? c : c.id);
+  const seq = ['WH', ...ids];
+  const coords = { WH: Array.isArray(warehouse) ? warehouse : [warehouse.lat, warehouse.lon] };
+  for (let i = 0; i < ids.length; i++) {
+    if (customerCoords && customerCoords[ids[i]]) coords[ids[i]] = customerCoords[ids[i]];
+    else if (route.customers[i] && route.customers[i].lat) coords[ids[i]] = [route.customers[i].lat, route.customers[i].lon];
+  }
+  const legs = [];
+  let hasFallbackLegs = false;
+  for (let i = 0; i < seq.length - 1; i++) {
+    const fromId = seq[i], toId = seq[i + 1];
+    const fromC = coords[fromId], toC = coords[toId];
+    let km = dm ? dm[`${fromId}|${toId}`] : undefined;
+    if (typeof km !== 'number') {
+      km = Math.round(haversineKm(fromC[0], fromC[1], toC[0], toC[1]) * 100) / 100;
+      hasFallbackLegs = true;
+    }
+    legs.push({ points: [[fromC[0], fromC[1]], [toC[0], toC[1]]], km, ok: true, from: fromId, to: toId, straight: true });
+  }
+  return { legs, hasFallbackLegs, source: 'local-matrix-straight' };
+}
+
+export async function fetchRouteLegs(warehouse, route, customerCoords, { osrm, cache, meta = {}, mode, distMatrix } = {}) {
+  if (mode === 'local-matrix') return buildLegsFromMatrix(warehouse, route, customerCoords, distMatrix);
   const legs = [];
   let hasFallbackLegs = false;
   let source = 'local-road';

@@ -45,10 +45,13 @@ export function renderPanel({
   const params = plan.params || {};
   const cap = Number(params.cap ?? 12);
   const kmNow = Number(route.distance ?? 0);
-  const kmIsLegs = legsInfo?.source === 'local-road' || legsInfo?.source === 'mixed';
-  const kmSrcLabel = kmIsLegs
-    ? `from drawn road legs${legsInfo?.source === 'mixed' ? '; some straight-line' : ''}`
-    : 'from the solver road matrix — road legs not yet drawn';
+  const kmIsLegs = legsInfo?.source === 'local-road' || legsInfo?.source === 'mixed' || legsInfo?.source === 'local-matrix-straight';
+  const kmSrcLabel = legsInfo?.source === 'local-matrix-straight'
+    ? 'validated local road matrix — exact paths visible in Google Maps'
+    : kmIsLegs
+      ? `from drawn road legs${legsInfo?.source === 'mixed' ? '; some straight-line' : ''}`
+      : 'from the solver road matrix — road legs not yet drawn';
+  const gmapsUrl = route.gmaps_url || null;
 
   const stops = (route.customers || []).map((c, j) => {
     const cc = labelsById.get(c.id) || c;
@@ -98,7 +101,10 @@ export function renderPanel({
       <div class="pmeta">${(route.customers || []).length} stops · ${Number(route.volume || 0).toFixed(1)} MT / ${cap} MT · BDT ${(Number(route.value || 0) / 1e7).toFixed(2)} Cr · outbound ${kmNow.toFixed(1)} km <span class="note">(${esc(kmSrcLabel)})</span></div>
       <div class="pmeta btline">${esc(backtrackLabel || 'No backtracking')} · PDP: ${esc(route.qualifiesBy === 'Below' ? 'below threshold' : route.qualifiesBy)}</div>
       ${drawExplanations(route, legsInfo)}
-      <div class="pacts">${actions.map((a) => `<button type="button" class="btn ${a.cls}" data-act="${a.act}">${esc(a.label)}</button>`).join('')}</div>
+      <div class="pacts">
+        ${gmapsUrl ? `<a class="btn ghost gmaps" href="${esc(gmapsUrl)}" target="_blank" rel="noopener" title="Open this route (WH → stops) as turn-by-turn directions in Google Maps">View in Google Maps ↗</a>` : ''}
+        ${actions.map((a) => `<button type="button" class="btn ${a.cls}" data-act="${a.act}">${esc(a.label)}</button>`).join('')}
+      </div>
       ${exForm}
     </div>
     <div class="pbody">

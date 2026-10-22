@@ -45,7 +45,8 @@ export function createPlan(result, params = {}, dataset = null) {
         reason: null,
         geometrySource: r.geometrySource || 'solver-matrix',
         orig_order: r.orig_order ? [...r.orig_order] : undefined,
-        orig_distance: r.orig_distance
+        orig_distance: r.orig_distance,
+        gmaps_url: r.gmaps_url || null
       });
     }
   }
