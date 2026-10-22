@@ -1,5 +1,6 @@
 /* Plan state core: creation, versions, audit history */
 import { pairKey } from '../lib/road-distance.js';
+import { optimizeOrder } from '../lib/route-opt.js';
 
 export const STATUSES = ['Pending review', 'Ready', 'Approved exception', 'Needs revision', 'Excluded / deferred'];
 export const REASON_CATEGORIES = [
@@ -195,6 +196,7 @@ export function trySetStatus(plan, routeId, status, opts = {}) {
     return { ok: false, blockers };
   }
   
+  const before = { km: route.distance, MT: route.volume, cr: route.value / 1e7, status: route.status };
   route.status = status;
   if (status === 'Approved exception') {
     route.reasonCategory = opts.reasonCategory;
@@ -206,6 +208,14 @@ export function trySetStatus(plan, routeId, status, opts = {}) {
     route.reasonCategory = null;
     route.reason = null;
   }
+  bumpVersion(route);
+  pushAudit(route, {
+    type: `status:${status}`,
+    version: route.version,
+    before,
+    after: { km: route.distance, MT: route.volume, cr: route.value / 1e7, status: route.status },
+    paramsSnapshot: plan.params || null
+  });
   
   return { ok: true, blockers: [] };
 }
@@ -300,6 +310,22 @@ function rebuildRouteMetrics(route, distMatrix, params) {
   else route.qualifiesBy = 'Below';
 }
 
+const snap = (route) => ({ km: route.distance, MT: route.volume, cr: route.value / 1e7, status: route.status });
+
+function recordOp(plan, routes, type) {
+  for (const route of routes) {
+    bumpVersion(route);
+    pushAudit(route, {
+      type,
+      version: route.version,
+      before: route.__before || {},
+      after: snap(route),
+      paramsSnapshot: plan.params || null
+    });
+    delete route.__before;
+  }
+}
+
 export function applyOp(plan, op, distMatrix) {
   if (!op || !op.type) return { ok: false, blockers: ['Invalid op'] };
   // snapshot before
@@ -312,6 +338,7 @@ export function applyOp(plan, op, distMatrix) {
     if (!route) return { ok: false, blockers: ['Route not found'] };
     const idx = route.customers.findIndex(c => getCustId(c) === op.customerId);
     if (idx < 0) return { ok: false, blockers: ['Customer not found'] };
+    route.__before = snap(route);
     const cust = route.customers[idx];
     const custObj = typeof cust === 'string' ? { id: cust } : { ...cust };
     route.customers.splice(idx, 1);
@@ -324,6 +351,7 @@ export function applyOp(plan, op, distMatrix) {
       reason: null
     });
     rebuildRouteMetrics(route, distMatrix, params);
+    recordOp(plan, [route], `remove:${op.customerId}`);
     return { ok: true };
   }
   
@@ -336,8 +364,9 @@ export function applyOp(plan, op, distMatrix) {
     if (nv > cap + 1e-9 && !op.approveOverload) {
       // rollback - but we already pushed undo; easier to restore by popping
       undo(plan);
-      return { ok: false, blockers: ['Over capacity - approval required'] };
+      return { ok: false, blockers: ['Over selected truck capacity — approval required'] };
     }
+    route.__before = snap(route);
     if (!route.customers) route.customers = [];
     route.customers.push({ ...c });
     revertOnEdit(route);
@@ -346,6 +375,7 @@ export function applyOp(plan, op, distMatrix) {
       plan.unassignedPool = plan.unassignedPool.filter(u => !(u.bp && u.bp.id === (c.id || op.customerId)));
     }
     rebuildRouteMetrics(route, distMatrix, params);
+    recordOp(plan, [route], `add:${c.id || op.customerId}`);
     return { ok: true };
   }
   
@@ -361,13 +391,15 @@ export function applyOp(plan, op, distMatrix) {
     const nv = (tgt.volume || 0) + (c.orderVolume || 0);
     const cap = params.cap !== undefined ? params.cap : 12;
     if (nv > cap + 1e-9 && !op.approveOverload) {
-      undo(plan); return { ok: false, blockers: ['Over capacity - approval required'] };
+      undo(plan); return { ok: false, blockers: ['Over selected truck capacity — approval required'] };
     }
+    src.__before = snap(src); tgt.__before = snap(tgt);
     if (!tgt.customers) tgt.customers = [];
     tgt.customers.push(c);
     revertOnEdit(src); revertOnEdit(tgt);
     rebuildRouteMetrics(src, distMatrix, params);
     rebuildRouteMetrics(tgt, distMatrix, params);
+    recordOp(plan, [src, tgt], `move:${op.customerId}`);
     return { ok: true };
   }
   
@@ -375,9 +407,11 @@ export function applyOp(plan, op, distMatrix) {
     const route = findRoute(plan, op.routeId);
     if (!route) { undo(plan); return { ok: false, blockers: ['Route not found'] }; }
     if (!op.reason) { undo(plan); return { ok: false, blockers: ['Excluded / deferred requires a reason'] }; }
+    route.__before = snap(route);
     route.status = 'Excluded / deferred';
     route.reason = op.reason;
     route.reasonCategory = null;
+    recordOp(plan, [route], `defer:${route.id}`);
     return { ok: true };
   }
   
@@ -390,46 +424,118 @@ export function applyOp(plan, op, distMatrix) {
     return { ok: true };
   }
   
+  if (op.type === 'deferUnassigned') {
+    if (!plan.unassignedPool) plan.unassignedPool = [];
+    const idx = plan.unassignedPool.findIndex(u => (u.bp && u.bp.id) === op.customerId);
+    if (idx >= 0) {
+      plan.unassignedPool[idx].decision = 'DEFERRED_FUTURE_PLAN';
+      if (op.reason) plan.unassignedPool[idx].reason = op.reason;
+    }
+    return { ok: true };
+  }
+  
   if (op.type === 'restoreCustomer') {
     const route = findRoute(plan, op.routeId);
     if (!route) { undo(plan); return { ok: false, blockers: ['Route not found'] }; }
     if (!plan.unassignedPool) { undo(plan); return { ok: false, blockers: ['Pool empty'] }; }
     const idx = plan.unassignedPool.findIndex(u => (u.bp && u.bp.id) === op.customerId);
     if (idx < 0) { undo(plan); return { ok: false, blockers: ['Customer not found in pool'] }; }
+    route.__before = snap(route);
     const u = plan.unassignedPool.splice(idx, 1)[0];
     if (!route.customers) route.customers = [];
     route.customers.push({ id: u.bp.id, bpId: u.bp.bpId, name: u.bp.name, orderVolume: u.bp.vol, orderValue: u.bp.val });
     revertOnEdit(route);
     rebuildRouteMetrics(route, distMatrix, params);
+    recordOp(plan, [route], `restore:${op.customerId}`);
     return { ok: true };
   }
   
   if (op.type === 'reoptimiseSequence') {
-    // placeholder - actual optimization uses optimizeOrder
+    const route = findRoute(plan, op.routeId);
+    if (!route) { undo(plan); return { ok: false, blockers: ['Route not found'] }; }
+    route.__before = snap(route);
+    const ids = route.customers.map(getCustId);
+    let order;
+    try {
+      order = optimizeOrder(ids, distMatrix, op.iterations || 5000, op.seed || 42);
+    } catch {
+      order = ids;
+    }
+    const custById = new Map(route.customers.map(c => [getCustId(c), c]));
+    route.customers = order.map(id => custById.get(id)).filter(Boolean);
     revertOnEdit(route);
-    return { ok: true };
+    rebuildRouteMetrics(route, distMatrix, params);
+    recordOp(plan, [route], `reoptimise:${route.id}`);
+    return { ok: true, distance: route.distance };
   }
   
   undo(plan);
   return { ok: false, blockers: ['Unknown op'] };
 }
 
-export function planMerge(plan, sourceId) {
+/* Directed route total over ordered WH -> ids legs; null when any directed leg is unavailable. */
+export function directedRouteKm(ids, dm) {
+  if (!ids.length) return 0;
+  let total = 0;
+  const leg = (a, b) => (dm ? dm[`${a}|${b}`] : undefined);
+  let v = leg('WH', ids[0]);
+  if (v == null) return null;
+  total += v;
+  for (let i = 1; i < ids.length; i++) {
+    v = leg(ids[i - 1], ids[i]);
+    if (v == null) return null;
+    total += v;
+  }
+  return Math.round(total * 100) / 100;
+}
+
+function bestInsertDelta(targetIds, id, dm) {
+  let best = null;
+  const base = directedRouteKm(targetIds, dm);
+  if (base == null) return null;
+  for (let p = 0; p <= targetIds.length; p++) {
+    const order = targetIds.slice(0, p).concat([id], targetIds.slice(p));
+    const d = directedRouteKm(order, dm);
+    if (d == null) continue;
+    if (best === null || d < best.d) best = { order, d, delta: d - base };
+  }
+  return best;
+}
+
+export function planMerge(plan, sourceId, distMatrix = null) {
   const source = findRoute(plan, sourceId);
-  if (!source) return { none: true, message: 'No feasible merge found' };
-  // Simple candidate logic - find feasible targets
+  if (!source || !(source.customers || []).length) {
+    return { none: true, message: 'No feasible merge found within selected truck capacity. Review nearby BPs, approve an exception, or defer these customers.' };
+  }
+  const dm = distMatrix || plan.distMatrix || null;
+  const srcIds = source.customers.map(getCustId);
+  const cap = plan.params?.cap || 12;
   const candidates = [];
   for (const r of plan.routes) {
     if (r.id === sourceId) continue;
+    if ((r.status || '') === 'Excluded / deferred') continue;
     const nvVol = (r.volume || 0) + (source.volume || 0);
-    const cap = plan.params?.cap || 12;
-    if (nvVol <= cap + 1e-9 && isPdpOk({ volume: nvVol, value: (r.value || 0) + (source.value || 0) }, plan.params)) {
-      candidates.push({ targetId: r.id, delta: 0 });
+    if (nvVol > cap + 1e-9) continue;
+    if (!isPdpOk({ volume: nvVol, value: (r.value || 0) + (source.value || 0) }, plan.params)) continue;
+    // feasibility: sum of independent best-insertion deltas (road km, directed legs)
+    const tgtIds = r.customers.map(getCustId);
+    let delta = 0;
+    let feasible = true;
+    for (const cid of srcIds) {
+      const ins = bestInsertDelta(tgtIds, cid, dm);
+      if (!ins) { feasible = false; break; }
+      delta += ins.delta;
     }
+    if (!feasible && dm) continue;
+    candidates.push({ targetId: r.id, delta: feasible ? Math.round(delta * 100) / 100 : null });
   }
-  if (candidates.length === 0) return { none: true, message: 'No feasible merge found within selected truck capacity. Review nearby BPs, approve an exception, or defer these customers.' };
+  if (candidates.length === 0) {
+    return { none: true, message: 'No feasible merge found within selected truck capacity. Review nearby BPs, approve an exception, or defer these customers.' };
+  }
+  candidates.sort((a, b) => (a.delta ?? Infinity) - (b.delta ?? Infinity));
   return { best: candidates[0], alternatives: candidates.slice(1) };
 }
+
 
 export function newSolverVersion(plan, newResult, params) {
   // Archive current plan, start a new chain entry
@@ -469,14 +575,20 @@ export function applyMerge(plan, sourceId, targetId, opts = {}) {
   const source = findRoute(plan, sourceId);
   const target = findRoute(plan, targetId);
   if (!source || !target) { undo(plan); return { ok: false }; }
+  source.__before = snap(source); target.__before = snap(target);
   // Move all customers
   if (!target.customers) target.customers = [];
   target.customers.push(...(source.customers || []));
   source.customers = [];
+  revertOnEdit(target);
   // Update statuses per spec
   target.status = 'Needs revision';
   source.status = 'Excluded / deferred';
   source.reason = `Merged into ${targetId}`;
   source.reasonCategory = null;
+  const params = plan.params || {};
+  rebuildRouteMetrics(source, opts.distMatrix, params);
+  rebuildRouteMetrics(target, opts.distMatrix, params);
+  recordOp(plan, [source, target], `merge:${sourceId}->${targetId}`);
   return { ok: true };
 }
