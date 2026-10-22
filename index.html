@@ -280,8 +280,15 @@ tbody tr.thisrow{background:var(--lime-soft)}
 
     <div class="seclab">Routes &amp; Map</div>
     <div class="card" style="margin-bottom:10px">
-      <div class="cardhead"><h2>Selected route</h2><span class="note">Click any route line or stop on the map to inspect. Use the list below only if needed.</span>
-        <div class="spacer"></div><span class="note" id="routeCount"></span></div>
+      <div class="cardhead"><h2>Selected route</h2><span class="note">Click a route on map, use arrows, or pick from dropdown</span>
+        <div class="spacer"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="btn ghost" type="button" id="routePrev" title="Previous route">◀ Prev</button>
+          <select id="routeSelect" style="min-width:120px"></select>
+          <button class="btn ghost" type="button" id="routeNext" title="Next route">Next ▶</button>
+          <span class="note" id="routeCount"></span>
+        </div>
+      </div>
       <div class="cardbody"><div class="detail" id="detail" style="margin-top:0"></div></div>
     </div>
     <div class="card">
@@ -340,5 +347,9 @@ tbody tr.thisrow{background:var(--lime-soft)}
 <script src="assets/leaflet.js"></script>
 <script src="vendor/xlsx.full.min.js"></script>
 <script type="module" src="app.js"></script>
+<style>
+  .leaflet-interactive.route-line { cursor: pointer; }
+  .stopbadge { cursor: pointer; }
+</style>
 </body>
 </html>

@@ -205,6 +205,12 @@ function renderRoutes() {
   const tb = $('routeBody');
   tb.innerHTML = '';
   $('routeCount').textContent = `${RESULT.routes.length} routes · ${RESULT.unassignedCount} unassigned`;
+  // populate route selector
+  const sel = $('routeSelect');
+  if (sel) {
+    sel.innerHTML = RESULT.routes.map((r, i) => `<option value="${i}">R${String(i + 1).padStart(2, '0')} (${r.customers.length} stops, ${r.distance.toFixed(0)} km)</option>`).join('');
+    sel.onchange = () => selectRoute(Number(sel.value));
+  }
   RESULT.routes.forEach((r, i) => {
     const tr = document.createElement('tr');
     tr.className = 'clickable';
@@ -294,7 +300,10 @@ function routeOfId(id) {
 }
 
 function selectRoute(i) {
+  if (!RESULT || !RESULT.routes || i < 0 || i >= RESULT.routes.length) return;
   selectedRoute = i;
+  const sel = $('routeSelect');
+  if (sel) sel.value = String(i);
   document.querySelectorAll('#routeBody tr').forEach((tr) => tr.classList.toggle('thisrow', +tr.dataset.i === i));
   const r = RESULT.routes[i];
   const byId = byIdMap();
@@ -687,10 +696,10 @@ function isolateRoute(i) {
     const line = mapState.lines[k];
     const markers = mapState.markers[k] || [];
     if (k === i) {
-      if (line && map.hasLayer(line)) line.setStyle({ opacity: 0.95, weight: 4 });
-      markers.forEach((m) => { if (!map.hasLayer(m)) m.addTo(map); m.setOpacity(1); });
+      if (line && map.hasLayer(line)) { line.setStyle({ opacity: 1.0, weight: 6, color: COLORS[k % COLORS.length] }); line.bringToFront(); }
+      markers.forEach((m) => { if (!map.hasLayer(m)) m.addTo(map); m.setOpacity(1); m.setZIndexOffset?.(800); });
     } else {
-      if (line && map.hasLayer(line)) line.setStyle({ opacity: 0.06, weight: 2 });
+      if (line && map.hasLayer(line)) line.setStyle({ opacity: 0.08, weight: 2 });
       markers.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); });
     }
   });
@@ -722,6 +731,15 @@ $('ctl-in').addEventListener('click', () => mapState.map && mapState.map.zoomIn(
 $('ctl-out').addEventListener('click', () => mapState.map && mapState.map.zoomOut());
 $('ctl-fit').addEventListener('click', fitAll);
 $('ctl-routes').addEventListener('click', toggleRoutes);
+
+$('routePrev')?.addEventListener('click', () => {
+  if (selectedRoute == null || !RESULT) return;
+  selectRoute((selectedRoute - 1 + RESULT.routes.length) % RESULT.routes.length);
+});
+$('routeNext')?.addEventListener('click', () => {
+  if (selectedRoute == null || !RESULT) return;
+  selectRoute((selectedRoute + 1) % RESULT.routes.length);
+});
 
 /* ---------------- export ---------------- */
 $('exportBtn').addEventListener('click', () => {
