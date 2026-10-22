@@ -8,7 +8,7 @@ test('computeImpact rows', () => {
   const rows = computeImpact(before, after, { pmin: 10, vmin: 12, cap: 12 });
   const map = Object.fromEntries(rows.map((r) => [r.metric, r]));
   assert.strictEqual(map.Load.after, '12.0 MT');
-  assert.strictEqual(map['Value BDT'].after, 'BDT 120.0 lakh');
+  assert.strictEqual(map['Value BDT'].after, 'BDT 1200.0 lakh');
   assert.strictEqual(map['Outbound km'].delta, '+2.0');
   assert.strictEqual(map.PDP.after, 'Meets PDP');
   assert.strictEqual(map.Capacity.after, 'Normal');
