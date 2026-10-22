@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<script>
+(function(){try{var t=localStorage.getItem('pdp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+</script>
+<title>PDP Digital Route &middot; Bogura Warehouse</title>
+<style>
+@font-face{font-family:'Montserrat';font-style:normal;font-weight:100 900;font-display:swap;src:url('assets/Montserrat-Variable.woff2') format('woff2-variations');}
+:root{
+  color-scheme: light;
+  --g1:#7FDE44; --g2:#99E36D; --g3:#AAE683;
+  --brand:#019934; --brand-ink:#017030; --navy:#010066;
+  --lime-soft:rgba(127,222,68,.14);
+  --pink:#F75B9C; --pink-deep:#F70566; --pink-soft:rgba(247,91,156,.14); --pink-ink:#C40056;
+  --org:#FCBF61; --org-deep:#F5A623; --org-soft:rgba(252,191,97,.2); --org-ink:#8A5500;
+  --cy:#10CCBE; --cy-soft:rgba(16,204,190,.14); --cy-ink:#007A72;
+  --bg:#F5F5F7; --surface:#FFFFFF; --sunken:#F0F0F3;
+  --text:#1C1C1E; --text-2:#6C6C70; --text-3:#8E8E93;
+  --sep:rgba(60,60,67,.14); --fill:rgba(120,120,128,.09);
+  --r:16px; --r-sm:11px;
+  --shadow:0 1px 2px rgba(16,24,40,.04), 0 12px 32px rgba(16,24,40,.055);
+  --ring:0 0 0 4px rgba(1,153,52,.16);
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --brand:#35C46B; --brand-ink:#4BD37D; --navy:#C9C9F5;
+  --lime-soft:rgba(127,222,68,.12);
+  --pink:#F75B9C; --pink-deep:#F70566; --pink-soft:rgba(247,91,156,.16); --pink-ink:#FAA6CA;
+  --org:#FCBF61; --org-soft:rgba(252,191,97,.16); --org-ink:#FBD598;
+  --cy:#10CCBE; --cy-soft:rgba(16,204,190,.14); --cy-ink:#97E2DC;
+  --bg:#0B0B0C; --surface:#1C1C1E; --sunken:#141416;
+  --text:#FFFFFF; --text-2:#9A9AA0; --text-3:#8E8E93;
+  --sep:rgba(84,84,88,.42); --fill:rgba(120,120,128,.18);
+  --shadow:0 1px 2px rgba(0,0,0,.5);
+  --ring:0 0 0 4px rgba(53,196,107,.22);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.5 Montserrat,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit}
+
+/* app bar */
+.appbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;
+  padding:0 max(20px, calc((100vw - 1280px))/2);height:60px;
+  background:color-mix(in srgb, var(--bg) 84%, transparent);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--sep)}
+.appbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,var(--g1),var(--g2) 45%,var(--brand))}
+.logo{height:20px;width:auto;display:block;flex:none}
+:root[data-theme="dark"] .logo{filter:brightness(0) invert(1)}
+.ctx b{display:block;font-size:13.5px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.ctx span{display:block;font-size:11.5px;color:var(--text-3)}
+.appbar .spacer{flex:1}
+.themebtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--sep);background:var(--surface);
+  display:grid;place-items:center;cursor:pointer;color:var(--text-2);position:relative;overflow:hidden}
+.themebtn svg{width:18px;height:18px;grid-area:1/1;transition:opacity .18s ease,transform .22s ease}
+.themebtn .sun{opacity:0;transform:rotate(-90deg) scale(.6)}
+.themebtn .moon{opacity:1;transform:none}
+:root[data-theme="dark"] .themebtn .sun{opacity:1;transform:none}
+:root[data-theme="dark"] .themebtn .moon{opacity:0;transform:rotate(90deg) scale(.6)}
+.themebtn:focus-visible{outline:none;box-shadow:var(--ring)}
+
+main{padding:0 max(20px, calc((100vw - 1280px))/2) 64px}
+.head{padding:22px 0 18px}
+.head h1{font-size:26px;font-weight:700;letter-spacing:-.025em}
+.head p{font-size:13.5px;color:var(--text-2);margin-top:5px}
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.cardhead{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--sep);flex-wrap:wrap}
+.cardhead h2{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.cardhead .note{font-size:12px;color:var(--text-3)}
+.cardhead .spacer{flex:1}
+.cardbody{padding:18px 20px}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:460px){.kpis{grid-template-columns:1fr}}
+.kpi{padding:16px 18px}
+.kpi .lab{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3)}
+.kpi .val{font-size:26px;font-weight:700;letter-spacing:-.025em;margin-top:9px;line-height:1.1}
+.kpi .dl{font-size:12px;color:var(--text-2);margin-top:7px;display:flex;align-items:center;gap:5px}
+.dotc{width:8px;height:8px;border-radius:50%;flex:none}
+.kpi.accent{background:linear-gradient(135deg,var(--g1),var(--g3));border:none;color:#0E1A06}
+.kpi.accent .lab,.kpi.accent .dl{color:#2C4A15}
+.kpi.accent .val{color:#0E1A06}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:var(--r-sm);cursor:pointer;
+  font-size:13.5px;font-weight:600;padding:0 14px;min-height:38px;transition:transform .12s ease,opacity .12s ease,background .15s ease}
+.btn:active{transform:scale(.985)}
+.btn:focus-visible{outline:none;box-shadow:var(--ring)}
+.btn.primary{background:var(--brand);color:#fff}
+.btn.ghost{background:transparent;box-shadow:inset 0 0 0 1px var(--sep)}
+.btn.ghost:hover{background:var(--fill)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn:disabled{opacity:.55;pointer-events:none}
+
+/* form */
+select,input[type=text],input[type=number]{font:inherit;font-size:13.5px;color:var(--text);background:var(--sunken);
+  border:1px solid transparent;border-radius:var(--r-sm);padding:9px 12px;min-height:38px;outline:none;width:100%}
+select:focus,input:focus{border-color:var(--brand);box-shadow:var(--ring)}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.filepick{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--r-sm);cursor:pointer;
+  background:linear-gradient(135deg,var(--g1),var(--g3));color:#0E1A06;border:none;
+  box-shadow:0 6px 16px -8px rgba(63,143,22,.7);transition:transform .12s ease}
+.filepick:hover{transform:translateY(-1px)}
+.filepick input{display:none}
+.filepick svg{width:16px;height:16px;flex:none;opacity:.8}
+.filepick .fname{font-size:13px;font-weight:700;letter-spacing:-.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+
+/* table */
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+thead th{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);
+  text-align:left;padding:11px 16px;border-bottom:1px solid var(--sep);white-space:nowrap}
+tbody td{padding:12px 16px;border-top:1px solid var(--sep);text-align:left}
+tbody tr:first-child td{border-top:0}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:var(--fill)}
+tbody tr.thisrow{background:var(--lime-soft)}
+.mono{font-weight:650}
+.muted{color:var(--text-2)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--lime-soft);color:var(--brand-ink)}
+.tag.warn{background:var(--org-soft);color:var(--org-ink)}
+.tag.below{background:var(--pink-soft);color:var(--pink-ink)}
+.tag.graytag{background:var(--fill);color:var(--text-3)}
+
+/* workspace: route list + sticky map */
+.workspace{display:grid;grid-template-columns:1fr 420px;gap:16px;align-items:start}
+@media (max-width:1100px){.workspace{grid-template-columns:1fr}.mapcol{position:static!important}}
+.routecol{display:flex;flex-direction:column;gap:16px;min-width:0}
+.routecol .tablewrap{max-height:520px;overflow:auto}
+.mapcol{min-width:0}
+.mapcol .card{box-shadow:var(--shadow)}
+
+/* map */
+#map{height:560px;width:100%;background:var(--sunken);border-radius:0 0 var(--r) var(--r)}
+.scatterwrap{height:560px;width:100%;background:var(--surface);border-radius:0 0 var(--r) var(--r);position:absolute;inset:0;overflow:auto;padding:10px}
+.scatterwrap svg{width:100%;height:100%}
+.scatterwrap .axis{stroke:var(--sep);stroke-width:1}
+.scatterwrap .grid{stroke:var(--line);stroke-width:.5}
+.scatterwrap .lbl{font-size:10px;fill:var(--text-3)}
+.scatterwrap .pt{opacity:.9}
+.scatterwrap .whpt{fill:#141A0E;stroke:#fff;stroke-width:2}
+.mapwrap{position:relative;min-height:560px}
+.mapctl{position:absolute;top:12px;left:12px;z-index:500;display:flex;flex-direction:column;gap:6px}
+.mapctl button{width:36px;height:36px;border-radius:10px;border:1px solid var(--sep);background:var(--surface);
+  box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center;color:var(--text-2)}
+.mapctl button.on{background:var(--lime-soft);color:var(--brand-ink)}
+.legendbar{position:absolute;bottom:12px;left:12px;z-index:500;display:flex;gap:8px;flex-wrap:wrap;max-width:calc(100% - 24px)}
+.legendbar span{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);
+  background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:blur(8px);
+  padding:5px 10px;border-radius:999px;border:1px solid var(--sep)}
+.swatch{width:11px;height:11px;border-radius:3px;flex:none}
+.stopbadge{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.whbadge{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:10px;background:#141A0E;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* route detail */
+.detail{background:var(--sunken);border-radius:12px;padding:14px 16px;margin-top:14px}
+.detail .row{display:flex;gap:18px;flex-wrap:wrap}
+.detail .k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.detail .v{font-size:16px;font-weight:700;margin-top:2px}
+.detail .stops{margin-top:10px;display:grid;gap:6px;max-height:220px;overflow:auto}
+.detail .stop{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:6px 8px;border-radius:8px}
+.detail .stop:hover{background:var(--fill)}
+.detail .stop .n{width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;flex:none}
+.detail .stop .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* map toolbar (search + layers) */
+.maptools{display:flex;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--sep);flex-wrap:wrap}
+.search{display:flex;align-items:center;gap:8px;background:var(--sunken);border-radius:var(--r-sm);padding:0 11px;min-height:38px;flex:1;min-width:200px}
+.search input{background:none;border:0;padding:0;min-height:auto;font-size:13px}
+.layers{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--text-2)}
+.layers label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.layers input{accent-color:var(--brand)}
+.warnbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--org-soft);color:var(--org-ink);font-size:12.5px;font-weight:600;margin-top:10px;flex-wrap:wrap}
+.warnbar .btn{margin-left:auto}
+.pdpgap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:var(--pink-soft);color:var(--pink-ink);font-size:12.5px;font-weight:600;margin-top:10px}
+.corridorbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--sep)}
+.corridorbar .seg{display:inline-flex;gap:2px;background:var(--sunken);border-radius:10px;padding:3px}
+.corridorbar .seg button{border:0;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--text-2);padding:5px 11px;border-radius:8px;cursor:pointer}
+.corridorbar .seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(16,24,40,.12)}
+.nearby{margin-top:10px;display:grid;gap:6px}
+.nearby .nb{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--sunken);font-size:12.5px;cursor:pointer}
+.nearby .nb:hover{background:var(--fill)}
+.nearby .nb .imp{margin-left:auto;font-weight:700;color:var(--cy-ink);white-space:nowrap}
+.simcard{margin-top:10px;border:1px solid var(--sep);border-radius:12px;overflow:hidden}
+.simcard table{width:100%;border-collapse:collapse;font-size:12.5px}
+.simcard th{background:var(--sunken);text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);padding:8px 10px}
+.simcard td{padding:8px 10px;border-top:1px solid var(--sep)}
+.simcard .chg{font-weight:700}
+.exc{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:var(--fill);font-size:12.5px}
+.exc .dotc{width:9px;height:9px;border-radius:50%}
+
+.net.err{background:#FDE7EF;color:#B1004A}
+:root[data-theme="dark"] .net.err{background:#3A0F24;color:#FF9CC0}
+.empty{padding:44px 20px;text-align:center;color:var(--text-3);font-size:13.5px}
+.seclab{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin:26px 2px 16px}
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <img class="logo" src="assets/Syngenta_Logo.svg" alt="Syngenta">
+  <div class="ctx">
+    <b id="appTitle">PDP Digital Route</b>
+  </div>
+  <div class="spacer"></div>
+  <button class="themebtn" id="themeToggle" type="button" aria-label="Switch between light and dark mode">
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</header>
+<script>
+fetch('/api/settings').then(r=>r.json()).then(s=>{
+  if(s.title) document.getElementById('appTitle').textContent=s.title;
+  document.title=(s.title||'PDP Digital Route')+' · '+(s.warehouse_name||'Warehouse');
+  if(s.pdp_value_cr!=null) document.getElementById('pmin').value=s.pdp_value_cr;
+  if(s.pdp_volume_mt!=null) document.getElementById('vmin').value=s.pdp_volume_mt;
+  if(s.truck_capacity_mt!=null) document.getElementById('cap').value=s.truck_capacity_mt;
+}).catch(()=>{});
+</script>
+
+<main>
+  <div class="head">
+    <h1>Route Planning Workspace</h1>
+    <p>Upload customer GPS and order data, then solve PDP-aware delivery routes. Data stays on this PC.</p>
+  </div>
+
+  <!-- PLAN -->
+  <div class="card" id="planCard">
+    <div class="cardhead">
+      <h2>1 &middot; Upload &amp; Plan</h2>
+      <span class="note">Customer location master, order value &amp; volume, and planning parameters.</span>
+      <div class="spacer"></div>
+      <button class="btn primary" id="solveBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+        Solve Routes
+      </button>
+    </div>
+    <div class="cardbody">
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <label class="field">
+          <span>Customer GPS master</span>
+          <div class="filepick"><input type="file" id="gpsFile" accept=".xlsx,.xls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span class="fname" id="gpsName">Choose Excel file &hellip;</span></div>
+        </label>
+        <label class="field">
+          <span>Customer order value &amp; volume</span>
+          <div class="filepick"><input type="file" id="orderFile" accept=".xlsx,.xls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span class="fname" id="orderName">Choose Excel file &hellip;</span></div>
+        </label>
+      </div>
+      <div class="grid two" style="margin-top:14px">
+        <div class="field"><label>PDP value threshold (Cr BDT)</label><input type="number" id="pmin" value="10" step="1"></div>
+        <div class="field"><label>PDP volume threshold (MT)</label><input type="number" id="vmin" value="12" step="1"></div>
+      </div>
+      <div class="grid two" style="margin-top:14px">
+        <div class="field"><label>Truck capacity (MT)</label><input type="number" id="cap" value="12" step="1"></div>
+        <div class="field"><label>Google Maps API key (optional)</label><input type="text" id="apikey" placeholder="Leave blank to use cached road distances"></div>
+      </div>
+      <div class="net" id="net" hidden></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" hidden>
+    <div class="seclab">Summary</div>
+    <div class="grid kpis" id="kpis"></div>
+
+    <div class="seclab">Routes &amp; Map</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="cardhead"><h2>Selected route</h2><span class="note">Details, stops and navigation</span>
+        <div class="spacer"></div><span class="note" id="routeCount"></span></div>
+      <div class="cardbody"><div class="detail" id="detail" style="margin-top:0"></div></div>
+    </div>
+    <div class="workspace">
+      <div class="mapcol">
+        <div class="card" style="position:sticky;top:80px">
+          <div class="maptools">
+            <div class="search">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="color:var(--text-3)"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+              <input type="text" id="searchBox" list="bpList" placeholder="Search BP ID or customer name" aria-label="Search">
+              <datalist id="bpList"></datalist>
+            </div>
+            <div class="layers">
+              <label><input type="checkbox" id="lyr-all"> All customers</label>
+              <label><input type="checkbox" id="lyr-gps"> All GPS master</label>
+              <label><input type="checkbox" id="lyr-exc" checked> Exceptions</label>
+            </div>
+          </div>
+          <div class="mapwrap">
+            <div id="map"></div>
+            <div class="mapctl">
+              <button title="Zoom in" onclick="map.zoomIn()">&#43;</button>
+              <button title="Zoom out" onclick="map.zoomOut()">&#8722;</button>
+              <button id="ctl-routes" class="on" title="Toggle all routes" onclick="toggleRoutes()">&#10095;</button>
+              <button id="ctl-fit" title="Fit routes" onclick="fitAll()">&#8962;</button>
+            </div>
+            <div class="legendbar" id="legendbar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="routecol">
+        <div class="card">
+          <div class="cardhead">
+            <h2>Route list</h2>
+            <div class="spacer"></div>
+            <span class="note">Click a route to inspect it</span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Route</th><th>Stops</th><th>Volume</th><th>Value</th><th>Road km</th><th>PDP</th></tr></thead>
+              <tbody id="routeBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="cardhead"><h2>Exceptions</h2><span class="note" id="excCount"></span>
+        <div class="spacer"></div><span class="note">Below-PDP routes and unassigned customers</span></div>
+      <div class="cardbody"><div class="exc" id="exceptions"></div></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="cardhead"><h2>Export</h2><span class="note">Download the final route plan as Excel</span>
+        <div class="spacer"></div><button class="btn primary" id="exportBtn">Export to Excel</button></div>
+    </div>
+  </div>
+</main>
+
+<link rel="stylesheet" href="assets/leaflet.css">
+<script src="assets/leaflet.js"></script>
+<script>
+const COLORS=['#4FAE2E','#10AFA4','#3687D6','#626BC7','#9966C2','#F0A32D','#E84D8D','#718278'];
+let DATA=null, RESULT=null, map=null, layers={lines:{},markers:{},all:null,un:[]};
+let selectedRoute=null;
+let PDP={pmin:10,vmin:12,cap:12};
+let layerAll=false, layerGps=false, layerExc=true;
+
+function setStatus(msg,err){const el=document.getElementById('net');el.textContent=msg||'';el.classList.toggle('err',!!err);el.hidden=!msg;}
+
+function bindFile(inputId,nameId){
+  document.getElementById(inputId).addEventListener('change',e=>{
+    document.getElementById(nameId).textContent = e.target.files[0] ? e.target.files[0].name : 'Choose Excel file …';
+  });
+}
+bindFile('gpsFile','gpsName'); bindFile('orderFile','orderName');
+
+async function uploadFile(inputId){
+  const f=document.getElementById(inputId).files[0];
+  if(!f) return null;
+  const b64=await f.arrayBuffer().then(b=>btoa(String.fromCharCode(...new Uint8Array(b))));
+  const res=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:f.name,content:b64})});
+  const j=await res.json();
+  if(!j.ok) throw new Error('upload failed');
+  return j.path;
+}
+
+document.getElementById('solveBtn').addEventListener('click', async ()=>{
+  setStatus('Solving routes…');
+  try{
+    const gps=await uploadFile('gpsFile');
+    const orders=await uploadFile('orderFile');
+    if(!gps||!orders){ setStatus('Please choose both files first.',true); return; }
+    const body={gps,orders,api_key:document.getElementById('apikey').value,
+      cap:parseFloat(document.getElementById('cap').value),vmin:parseFloat(document.getElementById('vmin').value),
+      pmin:parseFloat(document.getElementById('pmin').value)};
+    const res=await fetch('/api/solve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const j=await res.json();
+    if(!j.ok){ setStatus(j.error||'Solve failed',true); return; }
+    DATA=j.data; RESULT=j.result;
+    PDP={pmin:parseFloat(document.getElementById('pmin').value),
+         vmin:parseFloat(document.getElementById('vmin').value),
+         cap:parseFloat(document.getElementById('cap').value)};
+    setStatus('');
+    document.getElementById('result').hidden=false;
+    buildSearchList();
+    renderSummary(); renderMap(); renderRoutes(); renderExceptions();
+  }catch(e){ setStatus('Error: '+e.message,true); }
+});
+
+function renderSummary(){
+  const r=RESULT, ds=DATA;
+  const below=r.routes.filter(x=>['Below','Value','Volume','Both'].indexOf(x.qualifiesBy)>=0 && x.qualifiesBy!=='Below').length;
+  const km=r.totalDistance;
+  const vol=r.routes.reduce((a,x)=>a+x.volume,0);
+  const val=r.routes.reduce((a,x)=>a+x.value,0);
+  document.getElementById('kpis').innerHTML=[
+    {lab:'Proposed routes',dot:'var(--brand)',val:r.routeCount,dl:'trucks needed'},
+    {lab:'Road distance',dot:'var(--g1)',val:Math.round(km).toLocaleString(),dl:'total km'},
+    {lab:'Volume planned',dot:'var(--cy)',val:vol.toFixed(1)+' MT',dl:'across routes'},
+    {lab:'Value planned',dot:'var(--pink)',val:(val/1e7).toFixed(2)+' Cr',dl:'BDT'},
+  ].map(k=>'<div class="kpi"><div class="lab"><i class="dotc" style="background:'+k.dot+'"></i>'+k.lab+'</div><div class="val">'+k.val+'</div><div class="dl">'+k.dl+'</div></div>').join('');
+}
+
+function badge(qual){
+  if(qual==='Value'||qual==='Volume'||qual==='Both') return '<span class="tag">PDP met</span>';
+  return '<span class="tag below">Below PDP</span>';
+}
+
+function renderRoutes(){
+  const tb=document.getElementById('routeBody'); tb.innerHTML='';
+  document.getElementById('routeCount').textContent=RESULT.routes.length+' routes · '+RESULT.unassignedCount+' unassigned';
+  RESULT.routes.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.className='clickable'; tr.dataset.i=i;
+    tr.innerHTML='<td><span class="mono" style="color:'+COLORS[i%COLORS.length]+'">R'+String(i+1).padStart(2,'0')+'</span></td>'+
+      '<td>'+r.customers.length+'</td><td>'+r.volume.toFixed(1)+' MT</td>'+
+      '<td>'+(r.value/1e7).toFixed(2)+' Cr</td><td>'+r.distance.toFixed(1)+'</td>'+
+      '<td>'+badge(r.qualifiesBy)+'</td>';
+    tr.addEventListener('click',()=>selectRoute(i));
+    tb.appendChild(tr);
+  });
+  document.getElementById('detail').innerHTML='<div class="muted" style="font-size:12.5px">Select a route above to see its stops, value and distance.</div>';
+}
+
+function renderExceptions(){
+  const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  const below=RESULT.routes.map((r,i)=>({r,i})).filter(x=>x.r.qualifiesBy==='Below');
+  document.getElementById('excCount').textContent=below.length+' below PDP · '+RESULT.unassignedCount+' unassigned';
+  let html='';
+  below.forEach(x=>{
+    html+='<div class="exc" style="background:var(--pink-soft);color:var(--pink-ink)"><span class="dotc" style="background:var(--pink-deep)"></span><span><b>R'+String(x.i+1).padStart(2,'0')+'</b> · '+x.r.volume.toFixed(1)+' MT · ৳'+(x.r.value/1e7).toFixed(2)+' Cr</span><button class="btn ghost" style="margin-left:auto" onclick="selectRoute('+x.i+')">Review</button></div>';
+  });
+  RESULT.unassigned.forEach(u=>{
+    const c=byId[u.customerId]||{};
+    html+='<div class="exc"><span class="dotc" style="background:#8E8E93"></span><span>'+c.name+' <span class="muted">('+c.bpId+')</span> · '+(c.orderVolume||0).toFixed(2)+' MT · ৳'+(c.orderValue/1e5||0).toFixed(1)+' lakh</span><span class="muted" style="margin-left:auto">'+u.reason+'</span></div>';
+  });
+  document.getElementById('exceptions').innerHTML=html||'<div class="muted" style="font-size:12.5px">No exceptions. All routes meet PDP and all customers are assigned.</div>';
+}
+
+/* ---- helpers ---- */
+function distAB(a,b){ const k=[a,b].sort().join('|'); const v=DATA.distMatrix[k]; return (v==null?99999:v); }
+function routeDist(ids){ let d=distAB('WH',ids[0]); for(let k=1;k<ids.length;k++) d+=distAB(ids[k-1],ids[k]); return d; }
+function insertBest(ids,bp){
+  let best=null;
+  for(let p=0;p<=ids.length;p++){
+    const o=ids.slice(0,p).concat([bp],ids.slice(p));
+    const d=routeDist(o);
+    if(best===null||d<best.d) best={order:o,d:d};
+  }
+  return best;
+}
+function backtrackKm(ids){
+  let bk=0, prev=distAB('WH',ids[0]);
+  for(let k=1;k<ids.length;k++){ const w=distAB('WH',ids[k]); if(w<prev-1) bk+=prev-w; prev=w; }
+  return bk;
+}
+function nearestOnRoute(ids,c){
+  let m=Infinity;
+  ids.forEach(id=>{ const d=distAB(id,c.id); if(d<m) m=d; });
+  return m;
+}
+function routeOfId(id){ for(let i=0;i<RESULT.routes.length;i++) if(RESULT.routes[i].customers.some(c=>c.id===id)) return i; return -1; }
+
+function selectRoute(i){
+  selectedRoute=i;
+  document.querySelectorAll('#routeBody tr').forEach(tr=>tr.classList.toggle('thisrow',+tr.dataset.i===i));
+  const r=RESULT.routes[i];
+  const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  const ids=r.customers.map(c=>c.id);
+  const stops=r.customers.map((c,j)=>{
+    const cc=byId[c.id]||{};
+    return '<div class="stop" onclick="focusStop('+i+','+j+')"><span class="n">'+(j+1)+'</span><span class="nm">'+cc.name+'</span><span class="muted">'+cc.orderVolume.toFixed(2)+' MT · ৳'+(cc.orderValue/1e7).toFixed(2)+' Cr</span></div>';
+  }).join('');
+
+  // PDP gap
+  let gap='';
+  if(r.qualifiesBy==='Below'){
+    const needV=Math.max(0,(PDP.vmin||12)-r.volume);
+    const needP=Math.max(0,((PDP.pmin||10)*1e7)-r.value);
+    gap='<div class="pdpgap"><span>Does not meet PDP</span><span>Shortfall: '+needV.toFixed(1)+' MT · ৳'+(needP/1e5).toFixed(1)+' lakh</span></div>';
+  }
+  // Backtracking warning
+  const bk=backtrackKm(ids);
+  let warn='';
+  if(bk>15) warn='<div class="warnbar"><span>Route quality check: return movement of ~'+bk.toFixed(0)+' km toward the previous corridor.</span><button class="btn ghost" onclick="reoptimise('+i+')">Optimise sequence</button></div>';
+  else if(r.orig_distance && r.orig_distance-r.distance>5) warn='<div class="warnbar" style="background:var(--lime-soft);color:var(--brand-ink)"><span>Sequence optimised: saved '+(r.orig_distance-r.distance).toFixed(1)+' km (original '+r.orig_distance.toFixed(0)+' km).</span><button class="btn ghost" onclick="restoreOriginal('+i+')">Restore original</button></div>';
+
+  // Corridor + nearby
+  const corr='<div class="corridorbar">'+
+    '<span class="note">Route corridor</span>'+
+    '<span class="seg"><button id="cw2" class="'+(corridorW===2?'on':'')+'" onclick="setCorridor(2)">2 km</button><button id="cw5" class="'+(corridorW===5?'on':'')+'" onclick="setCorridor(5)">5 km</button></span>'+
+    '<button class="btn ghost" onclick="toggleCorridor()">'+(corridorOn?'Hide nearby BPs':'Find nearby BPs')+'</button>'+
+    '<div class="nearby" id="nearby"></div>'+
+  '</div>';
+  const sim='<div id="sim"></div>';
+
+  document.getElementById('detail').innerHTML=
+    '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">'+
+      '<div><div class="k">Route</div><div class="v" style="color:'+COLORS[i%COLORS.length]+'">R'+String(i+1).padStart(2,'0')+'</div></div>'+
+      '<div><div class="k">PDP</div><div class="v">'+r.qualifiesBy+'</div></div>'+
+      '<div><div class="k">Load</div><div class="v">'+r.volume.toFixed(1)+' MT</div></div>'+
+      '<div><div class="k">Value</div><div class="v">৳'+(r.value/1e7).toFixed(2)+' Cr</div></div>'+
+      '<div><div class="k">Road km</div><div class="v">'+r.distance.toFixed(1)+'</div></div>'+
+      '<div class="spacer" style="flex:1"></div>'+
+      '<button class="btn primary" onclick="window.open(\''+r.gmaps_url+'\',\'_blank\')">View in Google Maps</button>'+
+    '</div>'+
+    gap+warn+
+    '<div class="stops">'+stops+'</div>'+
+    corr+sim;
+  if(map){ isolateRoute(i); fitRoute(i); }
+  if(corridorOn) renderNearby(i);
+}
+
+let corridorOn=false, corridorW=2, simBp=null;
+function toggleCorridor(){ corridorOn=!corridorOn; if(selectedRoute!=null) selectRoute(selectedRoute); }
+function setCorridor(w){ corridorW=w; if(selectedRoute!=null) selectRoute(selectedRoute); }
+function renderNearby(i){
+  const r=RESULT.routes[i]; const ids=r.customers.map(c=>c.id); const inRoute=new Set(ids);
+  const list=DATA.customers.filter(c=>!inRoute.has(c.id) && !c.excluded).map(c=>{
+    const nd=nearestOnRoute(ids,c); const best=insertBest(ids,c.id);
+    return {c, nd, detour:best.d-r.distance, vol:c.orderVolume, val:c.orderValue};
+  }).filter(x=>x.nd<=corridorW).sort((a,b)=>a.detour-b.detour);
+  const nb=document.getElementById('nearby'); if(!nb) return;
+  if(!list.length){ nb.innerHTML='<span class="note">No nearby BPs within '+corridorW+' km of this route.</span>'; return; }
+  nb.innerHTML=list.slice(0,8).map(x=>
+    '<div class="nb" onclick="simulateBp('+i+',\''+x.c.id+'\')">'+
+      '<span class="dotc" style="background:var(--cy)"></span>'+
+      '<span>'+x.c.name+' <span class="muted">('+x.c.bpId+')</span></span>'+
+      '<span class="imp">+'+x.detour.toFixed(1)+' km · +'+x.vol.toFixed(2)+' MT</span>'+
+    '</div>').join('');
+}
+function simulateBp(i,bpId){
+  const r=RESULT.routes[i]; const ids=r.customers.map(c=>c.id);
+  const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  const best=insertBest(ids,bpId); const c=byId[bpId];
+  const nv=r.volume+c.orderVolume, nval=r.value+c.orderValue;
+  const pdpOk=(nval>=((PDP.pmin||10)*1e7))||(nv>=(PDP.vmin||12));
+  const capOk=nv<=(PDP.cap||12);
+  const delta=best.d-r.distance;
+  document.getElementById('sim').innerHTML=
+    '<div class="simcard"><table>'+
+    '<tr><th>Metric</th><th>Current route</th><th>With '+c.name+'</th><th>Change</th></tr>'+
+    '<tr><td>Volume</td><td>'+r.volume.toFixed(1)+' MT</td><td>'+nv.toFixed(1)+' MT</td><td class="chg">+'+c.orderVolume.toFixed(1)+' MT</td></tr>'+
+    '<tr><td>Value</td><td>৳'+(r.value/1e7).toFixed(2)+' Cr</td><td>৳'+(nval/1e7).toFixed(2)+' Cr</td><td class="chg">+৳'+(c.orderValue/1e5).toFixed(1)+' lakh</td></tr>'+
+    '<tr><td>Road distance</td><td>'+r.distance.toFixed(1)+' km</td><td>'+best.d.toFixed(1)+' km</td><td class="chg">+'+delta.toFixed(1)+' km</td></tr>'+
+    '<tr><td>PDP result</td><td>'+r.qualifiesBy+'</td><td>'+(pdpOk?'PDP compliant':'Below PDP')+'</td><td>'+(pdpOk?'Met':'Short')+'</td></tr>'+
+    '<tr><td>Capacity</td><td>Normal</td><td>'+(capOk?'Normal':'Above selected capacity')+'</td><td>'+(capOk?'—':'Approval required')+'</td></tr>'+
+    '</table><div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+    '<button class="btn primary" onclick="applyBp('+i+',\''+bpId+'\')">Apply to route</button>'+
+    '<button class="btn ghost" onclick="simulateBpClear()">Keep current route</button>'+
+    '</div></div>';
+}
+function simulateBpClear(){ const s=document.getElementById('sim'); if(s) s.innerHTML=''; }
+function applyBp(i,bpId){
+  const r=RESULT.routes[i]; const ids=r.customers.map(c=>c.id);
+  const best=insertBest(ids,bpId); const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  r.customers=best.order.map(id=>({id:id}));
+  r.volume+=byId[bpId].orderVolume; r.value+=byId[bpId].orderValue; r.distance=best.d;
+  r.qualifiesBy=(r.value>=((PDP.pmin||10)*1e7)||r.volume>=(PDP.vmin||12))?'PDP compliant':'Below PDP';
+  // refresh map + list + dashboard
+  clearMap(); renderMap(); renderSummary(); renderRoutes(); renderExceptions(); selectRoute(i);
+}
+function reoptimise(i){
+  const r=RESULT.routes[i]; const dm=DATA.distMatrix;
+  // re-run SA via server is heavy; client-side simple 2-opt
+  let ids=r.customers.map(c=>c.id); let d=routeDist(ids); let improved=true;
+  while(improved){ improved=false;
+    for(let a=0;a<ids.length-1;a++) for(let b=a+2;b<ids.length;b++){
+      const o=ids.slice(0,a+1).concat(ids.slice(a+1,b+1).reverse(),ids.slice(b+1));
+      const nd=routeDist(o); if(nd<d-0.01){ ids=o; d=nd; improved=true; }
+    }
+  }
+  const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  r.customers=ids.map(id=>({id:id})); r.distance=d;
+  selectRoute(i);
+}
+function restoreOriginal(i){
+  const r=RESULT.routes[i]; if(!r.orig_order) return;
+  r.customers=r.orig_order.map(id=>({id:id})); r.distance=r.orig_distance;
+  selectRoute(i);
+}
+function focusStop(i,j){
+  const r=RESULT.routes[i]; const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  const c=byId[r.customers[j].id]; if(!c||!map) return;
+  map.panTo([c.lat,c.lon],{animate:true});
+  const m=layers.markers[i]&&layers.markers[i][j]; if(m){ m.openPopup(); }
+}
+function clearMap(){
+  if(!map) return;
+  RESULT.routes.forEach((r,k)=>{
+    if(layers.lines[k]&&map.hasLayer(layers.lines[k])) map.removeLayer(layers.lines[k]);
+    (layers.lines[k]&&layers.lines[k]._arrows||[]).forEach(a=>{ if(map.hasLayer(a)) map.removeLayer(a); });
+    (layers.markers[k]||[]).forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+  });
+  layers.un.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+  layers.un=[]; layers.lines={}; layers.markers={};
+}
+
+function isolateRoute(i){
+  RESULT.routes.forEach((r,k)=>{
+    const ln=layers.lines[k], mk=layers.markers[k], ar=(ln&&ln._arrows)||[];
+    if(k===i){
+      if(map.hasLayer(ln)) ln.setStyle({opacity:.95,weight:4});
+      mk.forEach(m=>{ if(!map.hasLayer(m)) m.addTo(map); m.setOpacity(1); });
+      ar.forEach(a=>{ if(!map.hasLayer(a)) a.addTo(map); });
+    } else {
+      if(map.hasLayer(ln)) ln.setStyle({opacity:.06,weight:2});
+      mk.forEach(m=>{ if(map.hasLayer(m)) m.remove(); });
+      ar.forEach(a=>{ if(map.hasLayer(a)) map.removeLayer(a); });
+    }
+  });
+}
+function showAllRoutes(){
+  RESULT.routes.forEach((r,k)=>{
+    const ln=layers.lines[k], mk=layers.markers[k], ar=(ln&&ln._arrows)||[];
+    if(map.hasLayer(ln)) ln.setStyle({opacity:.85,weight:3});
+    mk.forEach(m=>{ if(!map.hasLayer(m)) m.addTo(map); m.setOpacity(1); });
+    ar.forEach(a=>{ if(!map.hasLayer(a)) a.addTo(map); });
+  });
+}
+
+function badgeIcon(txt,color,last){
+  return L.divIcon({className:'',html:'<div class="stopbadge" style="background:'+color+'">'+txt+'</div>',iconSize:[22,22],iconAnchor:[11,11]});
+}
+function whIcon(){return L.divIcon({className:'',html:'<div class="whbadge">WH</div>',iconSize:[28,28],iconAnchor:[14,14]});}
+function arrowIcon(bearing,color){
+  return L.divIcon({className:'',html:'',iconSize:[0,0]});
+}
+function bpPopup(c,i,j){
+  const ri=(i!=null)?'R'+String(i+1).padStart(2,'0')+' · Stop '+(j+1):'Unassigned';
+  return '<b>'+c.name+'</b><br>BP ID: '+c.bpId+'<br>Location: '+(c.address||'—')+
+    '<br>GPS: '+c.lat.toFixed(5)+', '+c.lon.toFixed(5)+
+    '<br>Order value: ৳'+(c.orderValue/1e5).toFixed(1)+' lakh'+
+    '<br>Order volume: '+c.orderVolume.toFixed(2)+' MT'+
+    '<br>Route: '+ri;
+}
+
+function renderMap(){
+  if(!map){
+    map=L.map('map',{zoomControl:false}).setView([DATA.warehouse.lat,DATA.warehouse.lon],10);
+    L.control.scale().addTo(map);
+    fetch('/assets/districts.geojson').then(r=>r.json()).then(g=>{
+      L.geoJSON(g,{style:{color:'#99E36D',weight:.5,opacity:.45,fillColor:'#7FDE44',fillOpacity:.02},
+        onEachFeature:(f,layer)=>{const nm=f.properties&&(f.properties.ADM2_EN||f.properties.name);
+          layer.bindTooltip(nm||'',{sticky:true});}}).addTo(map);
+    }).catch(()=>{});
+  }
+  const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  // warehouse
+  L.marker([DATA.warehouse.lat,DATA.warehouse.lon],{icon:whIcon()}).addTo(map)
+    .bindPopup('<b>'+DATA.warehouse.name+'</b><br>Origin of every route');
+  // routes
+  RESULT.routes.forEach((r,i)=>{
+    const col=COLORS[i%COLORS.length];
+    const pts=[[DATA.warehouse.lat,DATA.warehouse.lon]].concat(r.customers.map(c=>[byId[c.id].lat,byId[c.id].lon]));
+    const line=L.polyline(pts,{color:col,weight:3,opacity:.85}).addTo(map);
+    line.on('click',()=>selectRoute(i));
+    layers.lines[i]=line;
+    // direction indicators removed
+    layers.markers[i]=r.customers.map((c,j)=>{
+      const cc=byId[c.id];
+      const last=(j===r.customers.length-1);
+      const m=L.marker([cc.lat,cc.lon],{icon:badgeIcon(j+1,col,last)}).addTo(map);
+      m.bindPopup(bpPopup(cc,i,j));
+      m.on('click',()=>selectRoute(i));
+      return m;
+    });
+  });
+  // unassigned / exceptions
+  RESULT.unassigned.forEach(u=>{
+    const c=byId[u.customerId]; if(!c) return;
+    const m=L.circleMarker([c.lat,c.lon],{radius:7,color:'#F70566',fillColor:'#F70566',fillOpacity:.6}).addTo(map);
+    m.bindPopup(bpPopup(c)+'<br>Reason: '+u.reason);
+    layers.un.push(m);
+  });
+  renderLayers();
+  // legend
+  const lb=document.getElementById('legendbar');
+  lb.innerHTML=RESULT.routes.slice(0,12).map((r,i)=>'<span><i class="swatch" style="background:'+COLORS[i%COLORS.length]+'"></i>R'+String(i+1).padStart(2,'0')+' · '+r.distance.toFixed(0)+' km</span>').join('');
+  fitAll();
+}
+
+/* layers */
+function renderLayers(){
+  // clear previous
+  if(layers.all){ map.removeLayer(layers.all); layers.all=null; }
+  if(layers.gps){ map.removeLayer(layers.gps); layers.gps=null; }
+  const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  if(layerAll){
+    layers.all=L.layerGroup(DATA.customers.filter(c=>!c.excluded).map(c=>{
+      const ri=routeOfId(c.id); const col=ri>=0?COLORS[ri%COLORS.length]:'#8E8E93';
+      const rad=3+Math.min(6,(c.orderVolume||0)*1.5);
+      const m=L.circleMarker([c.lat,c.lon],{radius:rad,color:col,fillColor:col,fillOpacity:.55,weight:1});
+      m.bindPopup(bpPopup(c,ri>=0?ri:null,ri>=0?RESULT.routes[ri].customers.findIndex(x=>x.id===c.id):null));
+      m.on('click',()=>{ if(ri>=0) selectRoute(ri); });
+      return m;
+    })).addTo(map);
+  }
+  if(layerGps){
+    layers.gps=L.layerGroup(DATA.customers.filter(c=>c.excluded).map(c=>{
+      const m=L.circleMarker([c.lat,c.lon],{radius:4,color:'#B0B0B0',fillColor:'#B0B0B0',fillOpacity:.5});
+      m.bindPopup('<b>'+c.name+'</b><br>BP ID: '+c.bpId+'<br>No order this batch');
+      return m;
+    })).addTo(map);
+  }
+}
+function buildSearchList(){
+  const dl=document.getElementById('bpList'); if(!dl) return;
+  dl.innerHTML=DATA.customers.map(c=>'<option value="'+c.bpId+'">'+c.name+'</option>').join('');
+}
+document.getElementById('searchBox').addEventListener('change',function(){
+  const v=(this.value||'').trim(); if(!v) return;
+  const c=DATA.customers.find(x=>String(x.bpId)===v)||DATA.customers.find(x=>x.name.toLowerCase().includes(v.toLowerCase()));
+  if(!c) return;
+  map.panTo([c.lat,c.lon],{animate:true});
+  const ri=routeOfId(c.id);
+  if(ri>=0){ selectRoute(ri); const j=RESULT.routes[ri].customers.findIndex(x=>x.id===c.id); focusStop(ri,j); }
+});
+document.getElementById('lyr-all').addEventListener('change',e=>{layerAll=e.target.checked;renderLayers();});
+document.getElementById('lyr-gps').addEventListener('change',e=>{layerGps=e.target.checked;renderLayers();});
+
+function fitAll(){
+  if(!map||!RESULT) return;
+  const b=new L.LatLngBounds([[DATA.warehouse.lat,DATA.warehouse.lon]]);
+  RESULT.routes.forEach(r=>r.customers.forEach(c=>{const x={};DATA.customers.forEach(d=>x[d.id]=d);const cc=x[c.id];if(cc)b.extend([cc.lat,cc.lon]);}));
+  map.fitBounds(b.pad(.1));
+}
+function fitRoute(i){
+  const r=RESULT.routes[i]; const byId={}; DATA.customers.forEach(c=>byId[c.id]=c);
+  const b=new L.LatLngBounds([[DATA.warehouse.lat,DATA.warehouse.lon]]);
+  r.customers.forEach(c=>b.extend([byId[c.id].lat,byId[c.id].lon]));
+  map.fitBounds(b.pad(.15));
+}
+function toggleRoutes(){
+  const btn=document.getElementById('ctl-routes'); const on=btn.classList.toggle('on');
+  if(on){ showAllRoutes(); }
+  else {
+    RESULT.routes.forEach((r,i)=>{const ln=layers.lines[i];const mk=layers.markers[i];
+      if(map.hasLayer(ln))map.removeLayer(ln); mk.forEach(m=>{if(map.hasLayer(m))map.removeLayer(m);});});
+  }
+}
+
+
+/* theme */
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const dark=document.documentElement.getAttribute('data-theme')==='light';
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  try{localStorage.setItem('pdp-theme',dark?'dark':'light');}catch(e){}
+});
+
+/* export */
+document.getElementById('exportBtn').addEventListener('click',async ()=>{
+  const res=await fetch('/api/export',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({data:JSON.stringify(DATA),result:JSON.stringify(RESULT)})});
+  const blob=await res.blob();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='route-plan.xlsx'; a.click();
+});
+</script>
+</body>
+</html>

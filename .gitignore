@@ -1,0 +1,32 @@
+# Customer data — never commit
+*.xlsx
+*.xls
+*.csv
+data/
+uploads/
+logs/
+web/__fixtures__/
+web/__bench.html
+web/__diff.html
+
+# Built binaries
+*.exe
+*.msi
+PDP-Software/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+*.spec
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

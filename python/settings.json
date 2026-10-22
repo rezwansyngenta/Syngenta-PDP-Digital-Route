@@ -1,0 +1,11 @@
+{
+  "warehouse_name": "Warehouse",
+  "warehouse_lat": 0.0,
+  "warehouse_lon": 0.0,
+  "pdp_value_cr": 10,
+  "pdp_volume_mt": 12,
+  "truck_capacity_mt": 12,
+  "country": "Bangladesh",
+  "brand": "Syngenta",
+  "title": "PDP Digital Route"
+}
