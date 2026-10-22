@@ -26,7 +26,9 @@ function setActiveTab(tab) {
   d.querySelector('#drawerPool')?.toggleAttribute('hidden', tab !== 'pool');
 }
 
-export function renderDrawer(plan, { selectedIndex, labelsById, callbacks }) {
+export function renderDrawer(plan, cb = {}) {
+  const { selectedIndex, labelsById } = cb;
+  const callbacks = cb;
   const d = document.getElementById('drawer');
   if (!d) return;
   const routes = sortForDrawer(plan.routes || []);
@@ -92,5 +94,4 @@ export function renderDrawer(plan, { selectedIndex, labelsById, callbacks }) {
   });
   const active = d.dataset.tab || 'routes';
   setActiveTab(active);
-  if (active === 'pool' || selectedRouteId === 'pool') setActiveTab('pool');
 }

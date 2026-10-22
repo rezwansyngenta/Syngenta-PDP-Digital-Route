@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { createPlan, trySetStatus, computeFinaliseGate, isPdpOk } from '../js/state.js';
+import { createPlan, trySetStatus, computeFinaliseGate, isPdpOk, applyOp, applyMerge } from '../js/state.js';
+
+function finalisePlan(plan) {
+  for (const u of plan.unassignedPool || []) u.decision = u.decision || 'ACCEPTED_UNASSIGNED';
+  for (const r of plan.routes) r.status = 'Ready';
+}
 
 test('PDP from params only - cap different from vMin', () => {
   // cap 7 MT truck, vMin 12 MT PDP volume - route can qualify via value only
@@ -45,4 +50,14 @@ test('finalise gate blocks pending', () => {
   const plan = createPlan(result, { pmin: 10, vmin: 12, cap: 12 });
   const gate = computeFinaliseGate(plan);
   assert.strictEqual(gate.canFinalise, false);
+});
+
+test('finalised plan rejects status, op and merge edits', () => {
+  const result = { routes: [{ id: 'R01', customers: [], volume: 5, value: 150000000 }, { id: 'R02', customers: [], volume: 12, value: 200000000 }] };
+  const plan = createPlan(result, { pmin: 10, vmin: 12, cap: 12 });
+  finalisePlan(plan);
+  plan.finalised = true;
+  assert.strictEqual(trySetStatus(plan, 'R01', 'Needs revision').ok, false);
+  assert.strictEqual(applyOp(plan, { type: 'removeCustomer', routeId: 'R01', customerId: 'C1' }).ok, false);
+  assert.strictEqual(applyMerge(plan, 'R02', 'R01').ok, false);
 });

@@ -12,7 +12,7 @@ export const REASON_CATEGORIES = [
   'Overload approved'
 ];
 
-export function createPlan(result, params = {}) {
+export function createPlan(result, params = {}, dataset = null) {
   const plan = {
     planId: result && (result.solveId || result.id) ? (result.solveId || result.id) : `plan_${Date.now()}`,
     params: { ...params },
@@ -50,7 +50,15 @@ export function createPlan(result, params = {}) {
     }
   }
   if (result && Array.isArray(result.unassigned)) {
-    plan.unassignedPool = result.unassigned.map(u => ({ ...u }));
+    plan.unassignedPool = result.unassigned.map((u) => {
+      const c = dataset && dataset.customers ? dataset.customers.find((x) => x.id === (u.customerId || u.id)) : null;
+      return {
+        bp: u.bp || (c ? { id: c.id, bpId: c.bpId, name: c.name, vol: c.orderVolume, val: c.orderValue } : { id: u.customerId || u.id }),
+        from: u.from || null,
+        decision: u.decision || null,
+        reason: u.reason || u.reasonTemplate || null,
+      };
+    });
   }
   
   return plan;
@@ -159,6 +167,9 @@ export function revertOnEdit(route) {
 
 export function trySetStatus(plan, routeId, status, opts = {}) {
   const blockers = [];
+  if (plan.finalised || plan.locked) {
+    return { ok: false, blockers: ['Plan is finalised and locked - create a new revision to edit'] };
+  }
   const route = plan.routes.find(r => r.id === routeId);
   if (!route) return { ok: false, blockers: ['Route not found'] };
   if (!STATUSES.includes(status)) {
@@ -328,6 +339,7 @@ function recordOp(plan, routes, type) {
 
 export function applyOp(plan, op, distMatrix) {
   if (!op || !op.type) return { ok: false, blockers: ['Invalid op'] };
+  if (plan.finalised || plan.locked) return { ok: false, blockers: ['Plan is finalised and locked - create a new revision to edit'] };
   // snapshot before
   pushUndo(plan, op);
   
@@ -368,7 +380,16 @@ export function applyOp(plan, op, distMatrix) {
     }
     route.__before = snap(route);
     if (!route.customers) route.customers = [];
-    route.customers.push({ ...c });
+    // place the new customer at the best-insert position so km matches the preview
+    const insIds = route.customers.map(getCustId);
+    const ins = bestInsertDelta(insIds, c.id, distMatrix);
+    if (ins && ins.order) {
+      const byId = Object.create(null);
+      for (const x of route.customers) byId[getCustId(x)] = x;
+      route.customers = ins.order.map(id => (id === c.id ? { ...c } : byId[id]));
+    } else {
+      route.customers.push({ ...c });
+    }
     revertOnEdit(route);
     // remove from pool if present
     if (plan.unassignedPool) {
@@ -571,6 +592,7 @@ export function createRevision(plan) {
 }
 
 export function applyMerge(plan, sourceId, targetId, opts = {}) {
+  if (plan.finalised || plan.locked) return { ok: false, blockers: ['Plan is finalised and locked - create a new revision to edit'] };
   pushUndo(plan, { type: 'merge' });
   const source = findRoute(plan, sourceId);
   const target = findRoute(plan, targetId);

@@ -272,7 +272,7 @@ function enterReview() {
   // stable route ids
   RESULT.routes.forEach((r, i) => { r.id = r.id || `R${String(i + 1).padStart(2, '0')}`; });
   const params = window.__lastParams || { pmin: 10, vmin: 12, cap: 12 };
-  plan = createPlan(RESULT, params);
+  plan = createPlan(RESULT, params, DATA);
   if (ROUTING_META) {
     plan.meta.engineVersion = ROUTING_META.engineVersion;
     plan.meta.profile = ROUTING_META.profile;
@@ -798,7 +798,7 @@ $('themeToggle').addEventListener('click', () => {
 });
 
 /* expose for tests/debug */
-window.__pdp = { get plan() { return plan; }, selectRoute, planMerge, applyPlanOp: applyOp, applyPlanMerge: applyMerge, trySetStatus, computeFinaliseGate, undo: doUndo, sortForDrawer, planProgress, setCorridor: (on) => { corridor.on = on; } };
+window.__pdp = { get plan() { return plan; }, get data() { return DATA; }, selectRoute, planMerge, applyPlanOp: applyOp, applyPlanMerge: applyMerge, trySetStatus, computeFinaliseGate, undo: doUndo, sortForDrawer, planProgress, setCorridor: (on) => { corridor.on = on; } };
 
 /* wire optimizeOrder for the review screen (simulated annealing from lib) */
 import('./lib/route-opt.js').then((m) => {

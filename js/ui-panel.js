@@ -161,7 +161,7 @@ export function bindPanel(el, fireEvent) {
     if (act === 'corr') { el._fireEvent({ type: 'corridor', w: Number(b.dataset.w) }); return; }
     if (act === 'sim-add') { el._fireEvent({ type: 'simulate', customerId: b.dataset.id }); return; }
     if (act === 'ex-apply') { el._fireEvent({ type: 'applyException', category: el.querySelector('#exCat')?.value, reason: el.querySelector('#exReason')?.value }); return; }
-    el._fireEvent({ type: act });
+    el._fireEvent({ type: act, target: b.dataset.target, id: b.dataset.id, j: b.dataset.j });
   });
   el.querySelector('.stops')?.addEventListener('click', (e) => {
     if (e.target.closest('[data-sact]')) return;
