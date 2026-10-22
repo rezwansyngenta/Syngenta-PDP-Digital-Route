@@ -431,6 +431,39 @@ export function planMerge(plan, sourceId) {
   return { best: candidates[0], alternatives: candidates.slice(1) };
 }
 
+export function newSolverVersion(plan, newResult, params) {
+  // Archive current plan, start a new chain entry
+  const archivedId = plan.planId;
+  const chain = plan.reSolveChain || [];
+  chain.push(archivedId);
+  const next = createPlan(newResult, params);
+  next.reSolveChain = chain;
+  next.solvedAt = new Date().toISOString();
+  return next;
+}
+
+export function replaceCurrentDraft(plan, result, params) {
+  const gate = computeFinaliseGate(plan);
+  const hasApprovedRoute = (plan.routes || []).some(r => r.status === 'Ready' || r.status === 'Approved exception');
+  if (hasApprovedRoute) {
+    throw new Error('Route decisions (Ready / Approved exception) exist — create a revision instead of replacing the draft.');
+  }
+  const next = createPlan(result, params);
+  next.planId = plan.planId;
+  next.reSolveChain = plan.reSolveChain || [];
+  return next;
+}
+
+export function createRevision(plan) {
+  const rev = JSON.parse(JSON.stringify(plan));
+  rev.planId = `${plan.planId}_rev${(plan.revisionCount || 0) + 1}`;
+  rev.revisionOf = plan.planId;
+  rev.revisionCount = (plan.revisionCount || 0) + 1;
+  rev.finalised = false;
+  rev.undoStack = [];
+  return rev;
+}
+
 export function applyMerge(plan, sourceId, targetId, opts = {}) {
   pushUndo(plan, { type: 'merge' });
   const source = findRoute(plan, sourceId);
