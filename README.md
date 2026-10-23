@@ -1,32 +1,37 @@
 # PDP Digital Route
 
-A zero-install route planner for Syngenta PDP distribution. Runs entirely in the browser — upload the customer GPS master and order file, set thresholds and truck capacity, and get optimized routes with road distances, a map, and Excel export.
+A zero-install, view-only route planner for Syngenta PDP distribution. Upload the customer GPS master and order file, choose Min km or Min trucks, and get every optimized route on the clean map at once - with per-leg km on select, filters, Google Maps links, and 4-sheet Excel export.
+
+Distances come from a bundled coordinate-keyed road matrix (`data/road_matrix_coord.json` - anonymous `lat,lon|lat,lon` pairs only, no customer IDs or names) with OSRM/haversine fallback for uncovered coordinates.
 
 ## Live app
 
-Published via GitHub Pages from the `web/` folder. After first deploy: `https://<owner>.github.io/<repo>/`
+Published via GitHub Pages from the repo root: `https://<owner>.github.io/<repo>/`
 
-## Quick start (browser)
+## Quick start
 
 1. Open the published page.
-2. Upload **Customer Location** (`.xlsx`/`.xls`) and **Customer Order** (`.xlsx`/`.xls`).
-3. Set **PDP value threshold (Cr BDT)**, **PDP volume threshold (MT)**, and **Truck capacity (MT)**.
+2. Upload the **GPS master** and **Order** Excel files.
+3. Set PDP thresholds (value Cr / volume MT), truck capacity, and **Optimise for**: **Min km** or **Min trucks**.
 4. Click **Solve Routes**.
-5. Inspect routes on the map, adjust individually, and **Export to Excel**.
+5. Filter routes/customers, click a route for leg km + stop details, open it in Google Maps, then **Export** (Route Summary, Route Stops, Google Maps Links, Unassigned).
+
+Capacity is strict: no route exceeds the truck capacity; oversized single orders are reported as unassigned with a reason.
 
 If the warehouse isn't present as a row in the GPS master, type `lat, lon` in **Warehouse override**. Otherwise coordinates come from a row named `Warehouse` / `Bogura Warehouse` or a `Location ID` of `WH`.
 
 ## Files
 
 ```
-web/        Published static app (GitHub Pages)
-python/     Original desktop/server sources and fix reference
+lib/ + index.html, app.js, worker.js, worker assets   Published static app (GitHub Pages, repo root)
+data/road_matrix_coord.json                           Anonymous coordinate-keyed road-km matrix
+scripts/make-coord-matrix.mjs                         Regenerates the matrix from a local OSRM data.json
 .github/workflows/pages.yml
 ```
 
 ## Settings
 
-Edit `web/settings.json` to change the OSRM endpoint (`osrm_endpoint`), block size (`osrm_table_chunk`), or defaults. Route distances use the OSRM demo service by default and are cached in your browser (IndexedDB) by coordinate pair.
+Edit `settings.json` to change the OSRM endpoint (`osrm_endpoint`), block size (`osrm_table_chunk`), or defaults. Distances prefer the bundled coordinate matrix (`prefer_local_matrix` + `local_matrix_path`); uncovered coordinate pairs fall back to OSRM (IndexedDB-cached), then haversine.
 
 ## Parity
 
