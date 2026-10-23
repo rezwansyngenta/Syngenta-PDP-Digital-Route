@@ -272,6 +272,16 @@ function renderFoot() {
     `${DATA.meta.totalCustomers} customers · ${DATA.meta.orderedCount} with orders`,
     `solved in ${RESULT.solveTime}s`,
   ];
+  const p = RESULT.proof;
+  if (p) {
+    const seqLabel = p.sequencing === 'exact' ? 'exact stop sequencing' : 'annealed stop sequencing';
+    const moved = p.movedKm > 0 ? ` (−${p.movedKm.toLocaleString()} km)` : '';
+    if (p.poolStatus === 'Optimal') {
+      bits.push(`✔ Proven: route-pool ILP optimal − ${seqLabel} − ${p.rounds} improvement round${p.rounds === 1 ? '' : 's'}${moved}`);
+    } else {
+      bits.push(`⚠ Best found (solver time limit) − ${seqLabel} − ${p.rounds} improvement round${p.rounds === 1 ? '' : 's'}${moved}`);
+    }
+  }
   $('foot').textContent = bits.join(' · ');
 }
 
