@@ -98,7 +98,8 @@ self.onmessage = async (ev) => {
     }
     if (signal.aborted) throw new Error('Cancelled');
 
-    const result = await solve(data, candidates, { capMax: cap, vMin, pMin, timeLimit: 60, highs: highsInstance });
+    const mode = params.mode === 'min-trucks' ? 'min-trucks' : 'min-km';
+    const result = await solve(data, candidates, { capMax: cap, vMin, pMin, timeLimit: 60, highs: highsInstance, mode });
 
     if ((result.status === 'Optimal' || result.status === 'Time limit reached') && result.routes.length) {
       progress('optimise', 'Optimising stop sequence…');
