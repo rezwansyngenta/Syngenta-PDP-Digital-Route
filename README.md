@@ -2,6 +2,8 @@
 
 A zero-install, view-only route planner for Syngenta PDP distribution. Upload the customer GPS master and order file, choose Min km or Min trucks, and get every optimized route on the clean map at once - with per-leg km on select, filters, Google Maps links, and 4-sheet Excel export.
 
+After each solve the footer shows a proof badge: the route-pool ILP result is proven optimal (or amber "best found" on solver time limit), stop sequences are exact (Held-Karp) up to 13 stops per route, and the converger reports how many relocate/swap/2-opt* rounds it needed (and km saved) before nothing improved.
+
 Distances come from a bundled coordinate-keyed road matrix (`data/road_matrix_coord.json` - anonymous `lat,lon|lat,lon` pairs only, no customer IDs or names) with OSRM/haversine fallback for uncovered coordinates.
 
 ## Live app
@@ -35,7 +37,7 @@ Edit `settings.json` to change the OSRM endpoint (`osrm_endpoint`), block size (
 
 ## Parity
 
-Browser and Python solvers share the same algorithms (CPython MT19937 RNG, identical candidate generation, HiGHS ILP, SA stop ordering). Results are validated against the same inputs.
+Browser and Python solvers share the same algorithms (CPython MT19937 RNG, identical candidate generation, HiGHS ILP, exact Held-Karp stop sequencing with SA fallback for routes over 13 stops). Results are validated against the same inputs.
 
 ## Offline/legacy fallback
 
