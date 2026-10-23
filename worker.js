@@ -37,15 +37,15 @@ self.onmessage = async (ev) => {
     const data = buildData(gpsRows, ordersRows, settings);
 
     // authoritative local road matrix (validated km, no cross-border paths)
-    let localMatrix = null;
+    let coordMatrix = null;
     if (settings.prefer_local_matrix !== false) {
-      const localPath = settings.local_matrix_path || 'data/road_matrix_cache.json';
+      const localPath = settings.local_matrix_path || 'data/road_matrix_coord.json';
       try {
         const res = await fetch(localPath);
         if (res.ok) {
           const j = await res.json();
-          localMatrix = j.distances || {};
-          progress('distance', `Loaded local road matrix: ${Object.keys(localMatrix).length.toLocaleString()} pairs.`);
+          coordMatrix = j.distances || {};
+          progress('distance', `Loaded local road matrix: ${Object.keys(coordMatrix).length.toLocaleString()} coordinate pairs.`);
         }
       } catch { /* fall back to OSRM below */ }
     }
@@ -58,14 +58,14 @@ self.onmessage = async (ev) => {
         endpoint,
         chunk,
         signal,
-        localMatrix,
+        coordMatrix,
         onProgress: (p) => progress('distance',
           `Road distances: ${p.pairsDone.toLocaleString()} pairs from OSRM…`, p),
       },
     );
     if (signal.aborted) throw new Error('Cancelled');
-    if (localMatrix && matrix.stats.localPairs === 0 && data.customers.length) {
-      progress('warn', 'Local road matrix loaded but no customer matched its IDs — falling back to OSRM. Check that BP/customer IDs in the GPS master match the matrix file.');
+    if (coordMatrix && data.customers.length && matrix.stats.localPairs / matrix.stats.pairs < 0.75) {
+      progress('warn', 'Coordinate match rate low — matrix may be stale or coordinates edited; uncovered pairs fall back to OSRM.');
     }
     data.distMatrix = matrix.distMatrix;
 

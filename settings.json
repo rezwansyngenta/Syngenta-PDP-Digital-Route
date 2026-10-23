@@ -15,6 +15,6 @@
   "routing_profile": "car",
   "restriction_version": "v0",
   "prefer_local_matrix": true,
-  "local_matrix_path": "data/road_matrix_cache.json",
+  "local_matrix_path": "data/road_matrix_coord.json",
   "include_gmaps_links": true
 }
