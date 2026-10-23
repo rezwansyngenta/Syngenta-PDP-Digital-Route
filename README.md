@@ -2,7 +2,7 @@
 
 A zero-install, view-only route planner for Syngenta PDP distribution. Upload the customer GPS master and order file, choose Min km or Min trucks, and get every optimized route on the clean map at once - with per-leg km on select, filters, Google Maps links, and 4-sheet Excel export.
 
-After each solve the footer shows a proof badge: the route-pool ILP result is proven optimal (or amber "best found" on solver time limit), stop sequences are exact (Held-Karp) up to 13 stops per route, and the converger reports how many relocate/swap/2-opt* rounds it needed (and km saved) before nothing improved.
+After each solve the footer shows a proof badge: the route-pool ILP result is proven optimal (or amber "best found" on solver time limit), stop sequences are exact (Held-Karp) up to 13 stops per route, and the converger reports how many relocate/swap/2-opt* rounds it needed (and km saved) before nothing improved. The solution is then fed back into the candidate pool for up to 3 enrichment re-solves (the ILP can chain multi-move combinations a scan can't), and an LP-relaxation lower bound reports the honest optimality gap: `gap ≤ X%` — when X is 0, the plan is certified optimal for the distance data.
 
 Distances come from a bundled coordinate-keyed road matrix (`data/road_matrix_coord.json` - anonymous `lat,lon|lat,lon` pairs only, no customer IDs or names) with OSRM/haversine fallback for uncovered coordinates.
 
