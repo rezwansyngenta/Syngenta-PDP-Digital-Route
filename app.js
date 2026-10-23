@@ -1,4 +1,4 @@
-/* PDP Digital Route ΓÇö browser UI. All compute happens locally. */
+/* PDP Digital Route — browser UI. All compute happens locally. */
 
 const $ = (id) => document.getElementById(id);
 const COLORS = ['#4FAE2E', '#10AFA4', '#3687D6', '#626BC7', '#9966C2', '#F0A32D', '#E84D8D', '#718278'];
@@ -10,9 +10,9 @@ let worker = null;
 let busy = false;
 
 const PDP = { pmin: 10, vmin: 12, cap: 12 };
-const mapState = { map: null, lines: {}, markers: {}, un: [], districts: null };
+const mapState = { map: null, lines: {}, markers: {}, un: [], districts: null, legLabels: {} };
 let selectedRoute = null;
-let layerAll = false, layerGps = false, layerExc = true;
+const flt = { routes: new Set(), qual: 'All', status: 'All', showAll: false };
 let corridorOn = false, corridorW = 2;
 
 /* ---------------- settings ---------------- */
@@ -48,7 +48,7 @@ function setStatus(msg, isError = false, pct = null) {
 function bindFile(inputId, nameId) {
   $(inputId).addEventListener('change', (e) => {
     const f = e.target.files[0];
-    $(nameId).textContent = f ? f.name : 'Choose Excel file ΓÇª';
+    $(nameId).textContent = f ? f.name : 'Choose Excel file …';
   });
 }
 bindFile('gpsFile', 'gpsName');
@@ -103,13 +103,18 @@ function handleWorkerMessage(msg) {
     setBusy(false);
     setStatus('');
     $('result').hidden = false;
+    $('drawer').hidden = true;
+    selectedRoute = null;
+    flt.routes.clear(); flt.qual = 'All'; flt.status = 'All'; flt.showAll = false;
+    $('fltQual').value = 'All'; $('fltStatus').value = 'All'; $('fltShowAll').checked = false;
     buildSearchList();
+    buildRouteFilter();
     renderSummary();
     renderMap();
     renderRoutes();
+    renderCustomerLayers();
     renderExceptions();
     renderFoot();
-    $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
@@ -118,7 +123,7 @@ function setBusy(b) {
   const btn = $('solveBtn');
   btn.disabled = b;
   btn.innerHTML = b
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>SolvingΓÇª'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>Solving…'
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>Solve Routes';
 }
 
@@ -130,7 +135,7 @@ $('solveBtn').addEventListener('click', async () => {
 
   try {
     setBusy(true);
-    setStatus('Reading the Excel filesΓÇª');
+    setStatus('Reading the Excel files…');
     const [gpsRows, ordersRows] = await Promise.all([
       gpsFile.arrayBuffer().then(sheetRows),
       orderFile.arrayBuffer().then(sheetRows),
@@ -186,27 +191,40 @@ function renderSummary() {
     `<div class="val">${k.val}</div><div class="dl">${k.dl}</div></div>`).join('');
 }
 
-const qualifyFor = (vol, val) => {
-  const byVol = vol >= PDP.vmin;
-  const byVal = val >= PDP.pmin * 1e7;
-  if (byVol && byVal) return 'Both';
-  if (byVol) return 'Volume';
-  if (byVal) return 'Value';
-  return 'Below';
-};
-
 const badge = (q) => (q === 'Below'
   ? '<span class="tag below">Below PDP</span>'
   : '<span class="tag">PDP met</span>');
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* ---------------- routes ---------------- */
+/* ---------------- routes + filters ---------------- */
+function buildRouteFilter() {
+  $('fltRoutes').innerHTML = RESULT.routes.map((r, i) =>
+    `<option value="${i}">R${String(i + 1).padStart(2, '0')} — ${r.customers.length} stops — ${r.distance.toFixed(0)} km</option>`).join('');
+}
+
+const routeVisible = (i) => {
+  if (flt.routes.size && !flt.routes.has(String(i))) return false;
+  if (flt.qual !== 'All' && RESULT.routes[i].qualifiesBy !== flt.qual) return false;
+  return true;
+};
+
+function filterChanged() {
+  if (selectedRoute != null && !routeVisible(selectedRoute)) {
+    selectedRoute = null;
+    $('drawer').hidden = true;
+  }
+  renderRoutes();
+  if (mapState.map) styleRoutes();
+}
+
 function renderRoutes() {
   const tb = $('routeBody');
   tb.innerHTML = '';
-  $('routeCount').textContent = `${RESULT.routes.length} routes ┬╖ ${RESULT.unassignedCount} unassigned`;
+  const n = RESULT.routes.filter((_, i) => routeVisible(i)).length;
+  $('routeCount').textContent = `${n}/${RESULT.routes.length} routes · ${RESULT.unassignedCount} unassigned`;
   RESULT.routes.forEach((r, i) => {
+    if (!routeVisible(i)) return;
     const tr = document.createElement('tr');
     tr.className = 'clickable';
     tr.dataset.i = i;
@@ -218,27 +236,29 @@ function renderRoutes() {
     tr.addEventListener('click', () => selectRoute(i));
     tb.appendChild(tr);
   });
-  $('detail').innerHTML = '<div class="muted" style="font-size:12.5px">Select a route above to see its stops, value and distance.</div>';
+  if (!selectedRoute) {
+    $('detail').innerHTML = '<div class="muted" style="font-size:12.5px">Click a route in the list, on the map or a legend pill to see stops, leg distances and Google Maps navigation.</div>';
+  }
 }
 
 function renderExceptions() {
   const byId = new Map(DATA.customers.map((c) => [c.id, c]));
   const below = RESULT.routes.map((r, i) => ({ r, i })).filter((x) => x.r.qualifiesBy === 'Below');
-  $('excCount').textContent = `${below.length} below PDP ┬╖ ${RESULT.unassignedCount} unassigned`;
+  $('excCount').textContent = `Exceptions (${below.length} below PDP · ${RESULT.unassignedCount} unassigned)`;
   let html = '';
   for (const x of below) {
     html += `<div class="exc" style="background:var(--pink-soft);color:var(--pink-ink)">` +
       `<span class="dotc" style="background:var(--pink-deep)"></span>` +
-      `<span><b>R${String(x.i + 1).padStart(2, '0')}</b> ┬╖ ${x.r.volume.toFixed(1)} MT ┬╖ αº│${(x.r.value / 1e7).toFixed(2)} Cr</span>` +
+      `<span><b>R${String(x.i + 1).padStart(2, '0')}</b> · ${x.r.volume.toFixed(1)} MT · ৳${(x.r.value / 1e7).toFixed(2)} Cr</span>` +
       `<button class="btn ghost" style="margin-left:auto" data-act="review" data-i="${x.i}">Review</button></div>`;
   }
   for (const u of RESULT.unassigned) {
     const c = byId.get(u.customerId) || {};
     html += `<div class="exc"><span class="dotc" style="background:#8E8E93"></span>` +
-      `<span>${esc(c.name)} <span class="muted">(${esc(c.bpId)})</span> ┬╖ ${(c.orderVolume || 0).toFixed(2)} MT ┬╖ αº│${((c.orderValue || 0) / 1e5).toFixed(1)} lakh</span>` +
+      `<span>${esc(c.name)} <span class="muted">(${esc(c.bpId)})</span> · ${(c.orderVolume || 0).toFixed(2)} MT · ৳${((c.orderValue || 0) / 1e5).toFixed(1)} lakh</span>` +
       `<span class="muted" style="margin-left:auto">${esc(u.reason)}</span></div>`;
   }
-  $('exceptions').innerHTML = html
+  $('excList').innerHTML = html
     || '<div class="muted" style="font-size:12.5px">No exceptions. All routes meet PDP and all customers are assigned.</div>';
 }
 
@@ -249,10 +269,10 @@ function renderFoot() {
     `${s.cacheHits?.toLocaleString?.() ?? 0} pairs from cache`,
     `${s.osrmPairs?.toLocaleString?.() ?? 0} from OSRM`,
     `${s.fallbackPairs?.toLocaleString?.() ?? 0} straight-line`,
-    `${DATA.meta.totalCustomers} customers ┬╖ ${DATA.meta.orderedCount} with orders`,
+    `${DATA.meta.totalCustomers} customers · ${DATA.meta.orderedCount} with orders`,
     `solved in ${RESULT.solveTime}s`,
   ];
-  $('foot').textContent = bits.join(' ┬╖ ');
+  $('foot').textContent = bits.join(' · ');
 }
 
 /* ---------------- route detail ---------------- */
@@ -278,34 +298,38 @@ function insertBest(ids, id) {
   return best;
 }
 
-function backtrackKm(ids) {
-  let bk = 0, prev = distAB('WH', ids[0]);
-  for (let k = 1; k < ids.length; k++) {
-    const w = distAB('WH', ids[k]);
-    if (w < prev - 1) bk += prev - w;
-    prev = w;
-  }
-  return bk;
-}
-
 const nearestOnRoute = (ids, c) => ids.reduce((m, id) => Math.min(m, distAB(id, c.id)), Infinity);
 
 function routeOfId(id) {
   return RESULT.routes.findIndex((r) => r.customers.some((c) => c.id === id));
 }
 
-function selectRoute(i) {
-  selectedRoute = i;
-  document.querySelectorAll('#routeBody tr').forEach((tr) => tr.classList.toggle('thisrow', +tr.dataset.i === i));
+const legKm = (ids) => {
+  const seq = ['WH'].concat(ids);
+  const legs = { WHfirst: null, mid: [], ret: null };
+  let d = null;
+  for (let k = 0; k < seq.length - 1; k++) {
+    const v = distAB(seq[k], seq[k + 1]);
+    legs.mid.push(v);
+    if (k === 0) legs.WHfirst = v;
+    d = (d ?? 0) + v;
+  }
+  if (ids.length) legs.ret = distAB(seq[seq.length - 1], 'WH');
+  return legs;
+};
+
+function showRouteDetail(i) {
   const r = RESULT.routes[i];
   const byId = byIdMap();
   const ids = r.customers.map((c) => c.id);
+  const lg = legKm(ids);
 
   const stops = r.customers.map((c, j) => {
     const cc = byId.get(c.id) || {};
-    return `<div class="stop" data-act="focus" data-i="${i}" data-j="${j}">` +
-      `<span class="n">${j + 1}</span><span class="nm">${esc(cc.name)}</span>` +
-      `<span class="muted">${(cc.orderVolume || 0).toFixed(2)} MT ┬╖ αº│${((cc.orderValue || 0) / 1e7).toFixed(2)} Cr</span></div>`;
+    return `<tr data-act="focus" data-i="${i}" data-j="${j}">` +
+      `<td>${j + 1}</td><td><b>${esc(cc.name)}</b> <span class="muted">${esc(cc.bpId)}</span></td>` +
+      `<td>${(cc.orderVolume || 0).toFixed(2)}</td><td>${((cc.orderValue || 0) / 1e5).toFixed(1)} lk</td>` +
+      `<td class="kmcell">${lg.mid[j].toFixed(1)} km</td></tr>`;
   }).join('');
 
   let gap = '';
@@ -313,18 +337,13 @@ function selectRoute(i) {
     const needV = Math.max(0, PDP.vmin - r.volume);
     const needP = Math.max(0, PDP.pmin * 1e7 - r.value);
     gap = `<div class="pdpgap"><span>Does not meet PDP</span>` +
-      `<span>Shortfall: ${needV.toFixed(1)} MT ┬╖ αº│${(needP / 1e5).toFixed(1)} lakh</span></div>`;
+      `<span>Shortfall: ${needV.toFixed(1)} MT · ৳${(needP / 1e5).toFixed(1)} lakh</span></div>`;
   }
 
-  const bk = backtrackKm(ids);
   let warn = '';
-  if (bk > 15) {
-    warn = `<div class="warnbar"><span>Route quality check: ~${bk.toFixed(0)} km of backtracking toward the previous corridor.</span>` +
-      `<button class="btn ghost" data-act="reopt" data-i="${i}">Optimise sequence</button></div>`;
-  } else if (r.orig_distance && r.orig_distance - r.distance > 5) {
+  if (r.orig_distance && r.orig_distance - r.distance > 5) {
     warn = `<div class="warnbar" style="background:var(--lime-soft);color:var(--brand-ink)">` +
-      `<span>Sequence optimised: saved ${(r.orig_distance - r.distance).toFixed(1)} km (was ${r.orig_distance.toFixed(0)} km).</span>` +
-      `<button class="btn ghost" data-act="restore" data-i="${i}">Restore original</button></div>`;
+      `<span>Sequence optimised: saved ${(r.orig_distance - r.distance).toFixed(1)} km (was ${r.orig_distance.toFixed(0)} km).</span></div>`;
   }
 
   const corridor = `<div class="corridorbar">` +
@@ -334,22 +353,32 @@ function selectRoute(i) {
     `<button class="btn ghost" data-act="toggle-corridor">${corridorOn ? 'Hide nearby BPs' : 'Find nearby BPs'}</button>` +
     '<div class="nearby" id="nearby"></div></div>';
 
+  $('drawerTitle').textContent = `R${String(i + 1).padStart(2, '0')} · ${r.customers.length} stops · ${r.distance.toFixed(1)} km`;
+
   $('detail').innerHTML =
-    '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
-      `<div><div class="k">Route</div><div class="v" style="color:${COLORS[i % COLORS.length]}">R${String(i + 1).padStart(2, '0')}</div></div>` +
+    '<div class="row">' +
       `<div><div class="k">PDP</div><div class="v">${r.qualifiesBy}</div></div>` +
       `<div><div class="k">Load</div><div class="v">${r.volume.toFixed(1)} MT</div></div>` +
-      `<div><div class="k">Value</div><div class="v">αº│${(r.value / 1e7).toFixed(2)} Cr</div></div>` +
-      `<div><div class="k">Road km</div><div class="v">${r.distance.toFixed(1)}</div></div>` +
-      '<div class="spacer" style="flex:1"></div>' +
-      `<a class="btn primary" href="${esc(r.gmaps_url)}" target="_blank" rel="noopener">View in Google Maps</a>` +
+      `<div><div class="k">Value</div><div class="v">৳${(r.value / 1e7).toFixed(2)} Cr</div></div>` +
+      `<div><div class="k">Load %</div><div class="v">${Math.round((r.volume / PDP.cap) * 100)}%</div></div>` +
     '</div>' +
     gap + warn +
-    `<div class="stops">${stops}</div>` +
+    `<table class="stops"><thead><tr><th>#</th><th>Customer</th><th>MT</th><th>Value</th><th>Leg km</th></tr></thead>` +
+    `<tbody>${stops}` +
+    `<tr class="retrow" title="Display only - planned km totals remain outbound"><td>↩</td><td>Return to warehouse</td><td></td><td></td>` +
+    `<td class="kmcell">${(lg.ret ?? 0).toFixed(1)} km</td></tr></tbody></table>` +
+    `<a class="btn primary gmaps" href="${esc(r.gmaps_url)}" target="_blank" rel="noopener">View in Google Maps</a>` +
     corridor + '<div id="sim"></div>';
 
-  if (mapState.map) { isolateRoute(i); fitRoute(i); }
   if (corridorOn) renderNearby(i);
+}
+
+function selectRoute(i) {
+  selectedRoute = i;
+  document.querySelectorAll('#routeBody tr').forEach((tr) => tr.classList.toggle('thisrow', +tr.dataset.i === i));
+  $('drawer').hidden = false;
+  showRouteDetail(i);
+  if (mapState.map) { styleRoutes(); fitRoute(i); }
 }
 
 function renderNearby(i) {
@@ -366,98 +395,11 @@ function renderNearby(i) {
   if (!nb) return;
   nb.innerHTML = list.length
     ? list.slice(0, 8).map((x) =>
-      `<div class="nb" data-act="sim" data-i="${i}" data-id="${esc(x.c.id)}">` +
+      `<div class="nb">` +
       `<span class="dotc" style="background:var(--cy)"></span>` +
       `<span>${esc(x.c.name)} <span class="muted">(${esc(x.c.bpId)})</span></span>` +
-      `<span class="imp">+${x.detour.toFixed(1)} km ┬╖ +${x.c.orderVolume.toFixed(2)} MT</span></div>`).join('')
+      `<span class="imp">+${x.detour.toFixed(1)} km · +${x.c.orderVolume.toFixed(2)} MT</span></div>`).join('')
     : `<span class="note">No nearby BPs within ${corridorW} km of this route.</span>`;
-}
-
-function simulateBp(i, bpId) {
-  const r = RESULT.routes[i];
-  const ids = r.customers.map((c) => c.id);
-  const c = byIdMap().get(bpId);
-  if (!c) return;
-  const best = insertBest(ids, bpId);
-  const nv = r.volume + c.orderVolume;
-  const nval = r.value + c.orderValue;
-  const pdpOk = nv >= PDP.vmin || nval >= PDP.pmin * 1e7;
-  const capOk = nv <= PDP.cap;
-  $('sim').innerHTML =
-    '<div class="simcard"><table>' +
-    `<tr><th>Metric</th><th>Current route</th><th>With ${esc(c.name)}</th><th>Change</th></tr>` +
-    `<tr><td>Volume</td><td>${r.volume.toFixed(1)} MT</td><td>${nv.toFixed(1)} MT</td><td class="chg">+${c.orderVolume.toFixed(1)} MT</td></tr>` +
-    `<tr><td>Value</td><td>αº│${(r.value / 1e7).toFixed(2)} Cr</td><td>αº│${(nval / 1e7).toFixed(2)} Cr</td><td class="chg">+αº│${(c.orderValue / 1e5).toFixed(1)} lakh</td></tr>` +
-    `<tr><td>Road distance</td><td>${r.distance.toFixed(1)} km</td><td>${best.d.toFixed(1)} km</td><td class="chg">+${(best.d - r.distance).toFixed(1)} km</td></tr>` +
-    `<tr><td>PDP result</td><td>${r.qualifiesBy}</td><td>${pdpOk ? 'PDP met' : 'Below PDP'}</td><td>${pdpOk ? 'Met' : 'Short'}</td></tr>` +
-    `<tr><td>Capacity</td><td>Normal</td><td>${capOk ? 'Normal' : 'Above selected capacity'}</td><td>${capOk ? 'ΓÇö' : 'Approval required'}</td></tr>` +
-    '</table><div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap">' +
-    `<button class="btn primary" data-act="apply" data-i="${i}" data-id="${esc(bpId)}">Apply to route</button>` +
-    '<button class="btn ghost" data-act="sim-clear">Keep current route</button></div></div>';
-}
-
-function applyBp(i, bpId) {
-  const r = RESULT.routes[i];
-  const byId = byIdMap();
-  const c = byId.get(bpId);
-  if (!c) return;
-  const best = insertBest(r.customers.map((x) => x.id), bpId);
-  r.customers = best.order.map((id) => {
-    const cc = byId.get(id) || {};
-    return { id, name: cc.name || '', bpId: cc.bpId || '', orderVolume: cc.orderVolume || 0, orderValue: cc.orderValue || 0 };
-  });
-  r.volume += c.orderVolume;
-  r.value += c.orderValue;
-  r.distance = best.d;
-  r.qualifiesBy = qualifyFor(r.volume, r.value);
-  clearMap();
-  renderMap();
-  renderSummary();
-  renderRoutes();
-  renderExceptions();
-  selectRoute(i);
-}
-
-function reoptimise(i) {
-  const r = RESULT.routes[i];
-  let ids = r.customers.map((c) => c.id);
-  let d = routeDist(ids);
-  let improved = true;
-  while (improved) {
-    improved = false;
-    for (let a = 0; a < ids.length - 1; a++) {
-      for (let b = a + 2; b < ids.length; b++) {
-        const o = ids.slice(0, a + 1).concat(ids.slice(a + 1, b + 1).reverse(), ids.slice(b + 1));
-        const nd = routeDist(o);
-        if (nd < d - 0.01) { ids = o; d = nd; improved = true; }
-      }
-    }
-  }
-  const byId = byIdMap();
-  r.customers = ids.map((id) => {
-    const cc = byId.get(id) || {};
-    return { id, name: cc.name || '', bpId: cc.bpId || '', orderVolume: cc.orderVolume || 0, orderValue: cc.orderValue || 0 };
-  });
-  r.distance = d;
-  clearMap();
-  renderMap();
-  renderRoutes();
-  selectRoute(i);
-}
-
-function restoreOriginal(i) {
-  const r = RESULT.routes[i];
-  if (!r.orig_order) return;
-  const byId = byIdMap();
-  r.customers = r.orig_order.map((id) => {
-    const cc = byId.get(id) || {};
-    return { id, name: cc.name || '', bpId: cc.bpId || '', orderVolume: cc.orderVolume || 0, orderValue: cc.orderValue || 0 };
-  });
-  r.distance = r.orig_distance;
-  clearMap();
-  renderMap();
-  renderRoutes();
-  selectRoute(i);
 }
 
 function focusStop(i, j) {
@@ -477,14 +419,18 @@ $('detail').addEventListener('click', (ev) => {
   const i = Number(el.dataset.i);
   if (act === 'focus') focusStop(i, Number(el.dataset.j));
   else if (act === 'review') selectRoute(i);
-  else if (act === 'reopt') reoptimise(i);
-  else if (act === 'restore') restoreOriginal(i);
-  else if (act === 'corridor') { corridorW = Number(el.dataset.w); selectRoute(i); }
-  else if (act === 'toggle-corridor') { corridorOn = !corridorOn; if (selectedRoute != null) selectRoute(selectedRoute); }
-  else if (act === 'sim') simulateBp(i, el.dataset.id);
-  else if (act === 'apply') applyBp(i, el.dataset.id);
-  else if (act === 'sim-clear') { const s = $('sim'); if (s) s.innerHTML = ''; }
+  else if (act === 'corridor') { corridorW = Number(el.dataset.w); showRouteDetail(i); }
+  else if (act === 'toggle-corridor') { corridorOn = !corridorOn; if (selectedRoute != null) showRouteDetail(selectedRoute); }
 });
+
+$('drawerClose').addEventListener('click', () => {
+  $('drawer').hidden = true;
+  selectedRoute = null;
+  document.querySelectorAll('#routeBody tr').forEach((tr) => tr.classList.remove('thisrow'));
+  if (mapState.map) styleRoutes();
+});
+
+$('backBtn').addEventListener('click', () => { $('result').hidden = true; });
 
 /* ---------------- map ---------------- */
 const stopIcon = (txt, color) => L.divIcon({
@@ -496,10 +442,10 @@ const stopIcon = (txt, color) => L.divIcon({
 const whIcon = () => L.divIcon({ className: '', html: '<div class="whbadge">WH</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
 
 const bpPopup = (c, i, j) => {
-  const routeLabel = i != null ? `R${String(i + 1).padStart(2, '0')} ┬╖ Stop ${j + 1}` : 'Not on a route';
-  return `<b>${esc(c.name)}</b><br>BP ID: ${esc(c.bpId)}<br>Location: ${esc(c.address || 'ΓÇö')}` +
+  const routeLabel = i != null ? `R${String(i + 1).padStart(2, '0')} · Stop ${j + 1}` : 'Not on a route';
+  return `<b>${esc(c.name)}</b><br>BP ID: ${esc(c.bpId)}<br>Location: ${esc(c.address || '—')}` +
     `<br>GPS: ${c.lat.toFixed(5)}, ${c.lon.toFixed(5)}` +
-    `<br>Order value: αº│${(c.orderValue / 1e5).toFixed(1)} lakh` +
+    `<br>Order value: ৳${(c.orderValue / 1e5).toFixed(1)} lakh` +
     `<br>Order volume: ${c.orderVolume.toFixed(2)} MT<br>Route: ${routeLabel}`;
 };
 
@@ -507,18 +453,19 @@ function clearMap() {
   const { map } = mapState;
   if (!map) return;
   Object.values(mapState.lines).forEach((l) => { if (map.hasLayer(l)) map.removeLayer(l); });
+  Object.values(mapState.legLabels).forEach((arr) => arr.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); }));
   Object.values(mapState.markers).forEach((arr) => arr.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); }));
   mapState.un.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); });
   mapState.un = [];
   mapState.lines = {};
   mapState.markers = {};
+  mapState.legLabels = {};
 }
 
 function renderMap() {
   const { map } = mapState;
   if (!map) {
     mapState.map = L.map('map', { zoomControl: false }).setView([DATA.warehouse.lat, DATA.warehouse.lon], 10);
-    L.control.scale().addTo(mapState.map);
     fetch('./assets/districts.geojson')
       .then((r) => r.json())
       .then((g) => {
@@ -542,11 +489,32 @@ function renderMap() {
 
   RESULT.routes.forEach((r, i) => {
     const col = COLORS[i % COLORS.length];
-    const pts = [[DATA.warehouse.lat, DATA.warehouse.lon]]
-      .concat(r.customers.map((c) => [byId.get(c.id).lat, byId.get(c.id).lon]));
+    const ids = r.customers.map((c) => c.id);
+    const seq = ['WH'].concat(ids);
+    const pts = seq.map((id) => {
+      const cc = id === 'WH' ? DATA.warehouse : byId.get(id);
+      return [cc.lat, cc.lon];
+    });
     const line = L.polyline(pts, { color: col, weight: 3, opacity: 0.85 }).addTo(m);
     line.on('click', () => selectRoute(i));
+    line.bindTooltip(`R${String(i + 1).padStart(2, '0')} · ${r.customers.length} stops · ${r.distance.toFixed(1)} km`, { sticky: true });
     mapState.lines[i] = line;
+    // per-leg km pills (hidden until the route is selected)
+    mapState.legLabels[i] = seq.slice(0, -1).map((a, s) => {
+      const b = seq[s + 1];
+      const A = a === 'WH' ? DATA.warehouse : byId.get(a);
+      const B = b === 'WH' ? DATA.warehouse : byId.get(b);
+      const mid = [(A.lat + B.lat) / 2, (A.lon + B.lon) / 2];
+      return L.marker(mid, {
+        interactive: false,
+        icon: L.divIcon({
+          className: 'legbox',
+          html: `<span class="legpill${a !== 'WH' && b !== 'WH' ? '' : ' ret'}">${distAB(a, b).toFixed(1)}</span>`,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0],
+        }),
+      });
+    });
     mapState.markers[i] = r.customers.map((c, j) => {
       const cc = byId.get(c.id);
       const mk = L.marker([cc.lat, cc.lon], { icon: stopIcon(j + 1, col) }).addTo(m);
@@ -564,42 +532,48 @@ function renderMap() {
     mapState.un.push(mk);
   });
 
-  renderLayers();
+  renderCustomerLayers();
 
   $('legendbar').innerHTML = RESULT.routes.slice(0, 12).map((r, i) =>
-    `<span><i class="swatch" style="background:${COLORS[i % COLORS.length]}"></i>R${String(i + 1).padStart(2, '0')} ┬╖ ${r.distance.toFixed(0)} km</span>`).join('');
+    `<span class="lgpill" data-i="${i}" style="cursor:pointer"><i class="swatch" style="background:${COLORS[i % COLORS.length]}"></i>R${String(i + 1).padStart(2, '0')} · ${r.distance.toFixed(0)} km</span>`).join('');
+  $('legendbar').querySelectorAll('.lgpill').forEach((el) => {
+    el.addEventListener('click', () => selectRoute(Number(el.dataset.i)));
+  });
 
   fitAll();
 }
 
 /* layers */
-let layerAllGroup = null, layerGpsGroup = null;
+let layerAllGroup = null;
 
-function renderLayers() {
+function renderCustomerLayers() {
   const { map } = mapState;
   if (!map) return;
   if (layerAllGroup) { map.removeLayer(layerAllGroup); layerAllGroup = null; }
-  if (layerGpsGroup) { map.removeLayer(layerGpsGroup); layerGpsGroup = null; }
 
-  if (layerAll) {
-    layerAllGroup = L.layerGroup(DATA.customers.filter((c) => !c.excluded).map((c) => {
-      const ri = routeOfId(c.id);
-      const col = ri >= 0 ? COLORS[ri % COLORS.length] : '#8E8E93';
-      const radius = 3 + Math.min(6, c.orderVolume * 1.5);
-      const mk = L.circleMarker([c.lat, c.lon], { radius, color: col, fillColor: col, fillOpacity: 0.55, weight: 1 });
-      const j = ri >= 0 ? RESULT.routes[ri].customers.findIndex((x) => x.id === c.id) : null;
-      mk.bindPopup(bpPopup(c, ri >= 0 ? ri : null, j));
-      mk.on('click', () => { if (ri >= 0) selectRoute(ri); });
-      return mk;
-    })).addTo(map);
-  }
-  if (layerGps) {
-    layerGpsGroup = L.layerGroup(DATA.customers.filter((c) => c.excluded).map((c) => {
-      const mk = L.circleMarker([c.lat, c.lon], { radius: 4, color: '#B0B0B0', fillColor: '#B0B0B0', fillOpacity: 0.5 });
-      mk.bindPopup(`<b>${esc(c.name)}</b><br>BP ID: ${esc(c.bpId)}<br>No order in this batch`);
-      return mk;
-    })).addTo(map);
-  }
+  const showUn = flt.status === 'All' || flt.status === 'Unassigned';
+  mapState.un.forEach((mk) => {
+    if (showUn && !map.hasLayer(mk)) mk.addTo(map);
+    if (!showUn && map.hasLayer(mk)) map.removeLayer(mk);
+  });
+
+  if (!flt.showAll && flt.status !== 'Routed' && flt.status !== 'Unassigned' && flt.status !== 'No-order') return;
+
+  layerAllGroup = L.layerGroup(DATA.customers.filter((c) => {
+    if (c.excluded) return flt.status === 'All' || flt.status === 'No-order';
+    const ri = routeOfId(c.id);
+    if (ri >= 0) return flt.status === 'All' || flt.status === 'Routed';
+    return flt.status === 'All' || flt.status === 'Unassigned';
+  }).map((c) => {
+    const ri = routeOfId(c.id);
+    const col = ri >= 0 ? COLORS[ri % COLORS.length] : '#8E8E93';
+    const radius = 3 + Math.min(6, c.orderVolume * 1.5);
+    const mk = L.circleMarker([c.lat, c.lon], { radius, color: col, fillColor: col, fillOpacity: 0.55, weight: 1 });
+    const j = ri >= 0 ? RESULT.routes[ri].customers.findIndex((x) => x.id === c.id) : null;
+    mk.bindPopup(bpPopup(c, ri >= 0 ? ri : null, j));
+    mk.on('click', () => { if (ri >= 0) selectRoute(ri); });
+    return mk;
+  })).addTo(map);
 }
 
 function buildSearchList() {
@@ -623,16 +597,13 @@ $('searchBox').addEventListener('change', function onSearch() {
   }
 });
 
-$('lyr-all').addEventListener('change', (e) => { layerAll = e.target.checked; if (DATA) renderLayers(); });
-$('lyr-gps').addEventListener('change', (e) => { layerGps = e.target.checked; if (DATA) renderLayers(); });
-$('lyr-exc').addEventListener('change', (e) => {
-  layerExc = e.target.checked;
-  if (!mapState.map) return;
-  mapState.un.forEach((m) => {
-    if (layerExc && !mapState.map.hasLayer(m)) m.addTo(mapState.map);
-    if (!layerExc && mapState.map.hasLayer(m)) mapState.map.removeLayer(m);
-  });
+$('fltRoutes').addEventListener('change', () => {
+  flt.routes = new Set(Array.from($('fltRoutes').selectedOptions).map((o) => o.value));
+  filterChanged();
 });
+$('fltQual').addEventListener('change', (e) => { flt.qual = e.target.value; filterChanged(); });
+$('fltShowAll').addEventListener('change', (e) => { flt.showAll = e.target.checked; renderCustomerLayers(); });
+$('fltStatus').addEventListener('change', (e) => { flt.status = e.target.value; renderCustomerLayers(); });
 
 function fitAll() {
   if (!mapState.map || !RESULT) return;
@@ -660,39 +631,48 @@ function fitRoute(i) {
   if (b.isValid()) mapState.map.fitBounds(b.pad(0.15));
 }
 
-function isolateRoute(i) {
+function styleRoutes() {
   const { map } = mapState;
+  if (!map || !RESULT) return;
   RESULT.routes.forEach((r, k) => {
     const line = mapState.lines[k];
     const markers = mapState.markers[k] || [];
-    if (k === i) {
-      if (line && map.hasLayer(line)) line.setStyle({ opacity: 0.95, weight: 4 });
-      markers.forEach((m) => { if (!map.hasLayer(m)) m.addTo(map); m.setOpacity(1); });
-    } else {
-      if (line && map.hasLayer(line)) line.setStyle({ opacity: 0.06, weight: 2 });
-      markers.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); });
+    const labels = mapState.legLabels[k] || [];
+    if (!routeVisible(k)) {
+      if (line && map.hasLayer(line)) map.removeLayer(line);
+      markers.forEach((mk) => { if (map.hasLayer(mk)) map.removeLayer(mk); });
+      labels.forEach((mk) => { if (map.hasLayer(mk)) map.removeLayer(mk); });
+      return;
     }
+    const others = selectedRoute != null && selectedRoute !== k;
+    if (line && !map.hasLayer(line)) line.addTo(map);
+    line.setStyle({ opacity: others ? 0.15 : selectedRoute === k ? 1 : 0.85, weight: others ? 2 : selectedRoute === k ? 6 : 3 });
+    if (others) markers.forEach((mk) => { if (map.hasLayer(mk)) map.removeLayer(mk); });
+    else markers.forEach((mk) => { if (!map.hasLayer(mk)) mk.addTo(map); mk.setOpacity(1); });
+    labels.forEach((mk) => {
+      const has = map.hasLayer(mk);
+      if (selectedRoute === k && !has) mk.addTo(map);
+      if (selectedRoute !== k && has) map.removeLayer(mk);
+    });
   });
 }
 
 function showAllRoutes() {
-  const { map } = mapState;
-  RESULT.routes.forEach((r, k) => {
-    const line = mapState.lines[k];
-    if (line && map.hasLayer(line)) line.setStyle({ opacity: 0.85, weight: 3 });
-    (mapState.markers[k] || []).forEach((m) => { if (!map.hasLayer(m)) m.addTo(map); m.setOpacity(1); });
-  });
+  selectedRoute = null;
+  $('drawer').hidden = true;
+  document.querySelectorAll('#routeBody tr').forEach((tr) => tr.classList.remove('thisrow'));
+  styleRoutes();
 }
 
 function toggleRoutes() {
   const btn = $('ctl-routes');
-  const on = btn.classList.toggle('on');
-  if (on) showAllRoutes();
+  if (btn.classList.toggle('on')) styleRoutes();
   else {
     RESULT.routes.forEach((r, i) => {
       const line = mapState.lines[i];
       if (line && mapState.map.hasLayer(line)) mapState.map.removeLayer(line);
       (mapState.markers[i] || []).forEach((m) => { if (mapState.map.hasLayer(m)) mapState.map.removeLayer(m); });
+      (mapState.legLabels[i] || []).forEach((m) => { if (mapState.map.hasLayer(m)) mapState.map.removeLayer(m); });
     });
   }
 }
@@ -703,8 +683,7 @@ $('ctl-fit').addEventListener('click', fitAll);
 $('ctl-routes').addEventListener('click', toggleRoutes);
 
 /* ---------------- export ---------------- */
-$('exportBtn').addEventListener('click', () => {
-  if (!DATA || !RESULT) return;
+function buildWorkbook() {
   const byId = byIdMap();
   const summary = [['Route ID', 'Customer Count', 'Total Volume (MT)', 'Total Value (BDT)',
     'Road Distance (km)', 'PDP Status', 'Capacity Utilisation']];
@@ -725,12 +704,29 @@ $('exportBtn').addEventListener('click', () => {
   const links = [['Route ID', 'Google Maps URL']];
   RESULT.routes.forEach((r, i) => links.push([`R${String(i + 1).padStart(2, '0')}`, r.gmaps_url || '']));
 
+  const unassigned = [['Customer', 'BP ID', 'Volume (MT)', 'Value (BDT)', 'Reason']];
+  RESULT.unassigned.forEach((u) => {
+    const c = byId.get(u.customerId) || {};
+    unassigned.push([c.name || u.customerId, c.bpId || '', c.orderVolume || 0, c.orderValue || 0, u.reason]);
+  });
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Route Summary');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(stops), 'Route Stops');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(links), 'Google Maps Links');
-  const stamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `route-plan-${stamp}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unassigned), 'Unassigned');
+  return wb;
+}
+
+/* test hook: sheet list without triggering a download */
+window.__exportWorkbook = () => {
+  const wb = buildWorkbook();
+  return { name: `route-plan-${new Date().toISOString().slice(0, 10)}.xlsx`, sheets: wb.SheetNames };
+};
+
+$('exportBtn').addEventListener('click', () => {
+  if (!DATA || !RESULT) return;
+  XLSX.writeFile(buildWorkbook(), `route-plan-${new Date().toISOString().slice(0, 10)}.xlsx`);
 });
 
 /* ---------------- theme ---------------- */

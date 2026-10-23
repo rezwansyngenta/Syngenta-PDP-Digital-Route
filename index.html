@@ -197,7 +197,64 @@ tbody tr.thisrow{background:var(--lime-soft)}
 .exc{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:var(--fill);font-size:12.5px;margin-bottom:6px}
 .exc .dotc{width:9px;height:9px;border-radius:50%}
 
-/* status + progress */
+/* ===== full-screen exe layout (view-only) ===== */
+#result{position:fixed;inset:0;z-index:1000;background:var(--sunken)}
+#mapFull{position:absolute;inset:0}
+#map{height:100%;width:100%;border-radius:0;background:var(--sunken)}
+#ctl-routes{color:var(--text-2)}
+#leftPanel{position:absolute;top:12px;left:12px;bottom:12px;width:400px;display:flex;flex-direction:column;min-height:0;
+  background:color-mix(in srgb,var(--surface) 93%,transparent);backdrop-filter:blur(10px);
+  border:1px solid var(--sep);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;z-index:700}
+.lp-head{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--sep);flex:none}
+.lp-head b{font-size:14.5px}
+.lp-head .btn{padding:0 11px;font-size:12.5px;min-height:32px}
+.lp-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:10px 12px 0;flex:none}
+.lp-kpis .kpi{padding:9px 11px;background:var(--sunken);border-radius:12px}
+.lp-kpis .kpi .val{font-size:17px;margin-top:3px}
+.lp-kpis .kpi .dl{font-size:10.5px;margin-top:2px}
+.lp-filters{padding:8px 12px 10px;display:grid;gap:8px;border-bottom:1px solid var(--sep);flex:none}
+.lp-filters select{min-height:30px;padding:4px 8px;font-size:12.5px}
+.lp-filters .multiple{min-height:0;height:auto}
+.lp-filters .chk{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.lp-filters .chk input{accent-color:var(--brand)}
+.lp-filters .search{min-height:32px;padding:0 10px;flex:none}
+.search{display:flex;align-items:center;gap:8px;background:var(--sunken);border-radius:var(--r-sm);padding:0 10px;min-height:32px}
+.search input{background:none;border:0;padding:0;min-height:auto;font-size:12.5px;width:100%}
+.lp-routes{flex:1;overflow:auto;min-height:0;border-top:0}
+.lp-routeshead{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);position:sticky;top:0;background:var(--surface);z-index:5}
+.lp-routeshead .note{font-weight:500;text-transform:none;letter-spacing:0}
+.lp-exc{flex:none;border-top:1px solid var(--sep);padding:6px 12px 8px;max-height:180px;overflow:auto}
+.lp-exc summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--text-2)}
+.lp-exc summary:hover{color:var(--text)}
+.lp-foot{flex:none;border-top:1px solid var(--sep);padding:6px 12px;font-size:10.5px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#drawer{position:absolute;top:12px;right:12px;bottom:12px;width:420px;max-width:calc(100vw - 430px);
+  background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(10px);
+  border:1px solid var(--sep);border-radius:var(--r);box-shadow:var(--shadow);z-index:850;display:flex;flex-direction:column;overflow:hidden}
+#drawer[hidden]{display:none}
+.drawer-head{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--sep);flex:none}
+.drawer-head b{font-size:14.5px}
+.drawer-head .spacer{flex:1}
+#drawerClose{border:0;background:none;font-size:20px;line-height:1;color:var(--text-2);cursor:pointer;padding:2px 7px;border-radius:8px}
+#drawerClose:hover{background:var(--fill);color:var(--text)}
+#drawer .detail{flex:1;overflow:auto;padding:12px 14px;margin:0;border-radius:0;background:transparent;border:0}
+.gmaps{width:100%;margin-top:12px;background:var(--brand);color:#fff;justify-content:center}
+.detail table.stops{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.detail table.stops th{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--sep)}
+.detail table.stops td{padding:6px 6px;border-bottom:1px solid var(--sep)}
+.detail table.stops td.kmcell{color:var(--text-2);white-space:nowrap}
+.detail table.stops tr.retrow td{color:var(--brand-ink);font-weight:600}
+.detail table.stops tbody tr[data-act=focus]{cursor:pointer}
+.detail table.stops tbody tr[data-act=focus]:hover{background:var(--fill)}
+
+/* per-leg km pill on map */
+.legpill{background:color-mix(in srgb,var(--surface) 92%,transparent);color:var(--text);border:1px solid var(--sep);
+  border-radius:999px;font-size:10.5px;font-weight:700;padding:1px 7px;white-space:nowrap;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);transform:translate(-50%,-50%)}
+.legpill.ret{opacity:.85}
+.legbox{background:transparent;border:0}
+
+@media (max-width:1100px){#leftPanel{width:330px;bottom:12px}#drawer{width:calc(100vw - 342px);max-width:none}}
+
 .net{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 14px;border-radius:12px;
   background:var(--lime-soft);color:var(--brand-ink);font-size:12.5px;font-weight:600}
 .net[hidden]{display:none}
@@ -278,73 +335,75 @@ tbody tr.thisrow{background:var(--lime-soft)}
     </div>
   </div>
 
-  <!-- RESULT -->
+  <!-- RESULT: full-screen exe layout over the map -->
   <div id="result" hidden>
-    <div class="seclab">Summary</div>
-    <div class="grid kpis" id="kpis"></div>
-
-    <div class="seclab">Routes &amp; Map</div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="cardhead"><h2>Selected route</h2><span class="note">Details, stops and navigation</span>
-        <div class="spacer"></div><span class="note" id="routeCount"></span></div>
-      <div class="cardbody"><div class="detail" id="detail" style="margin-top:0"></div></div>
-    </div>
-    <div class="workspace">
-      <div class="mapcol">
-        <div class="card" style="position:sticky;top:80px">
-          <div class="maptools">
-            <div class="search">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="color:var(--text-3)"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-              <input type="text" id="searchBox" list="bpList" placeholder="Search BP ID or customer name" aria-label="Search">
-              <datalist id="bpList"></datalist>
-            </div>
-            <div class="layers">
-              <label><input type="checkbox" id="lyr-all"> All customers</label>
-              <label><input type="checkbox" id="lyr-gps"> No order this batch</label>
-              <label><input type="checkbox" id="lyr-exc" checked> Unassigned</label>
-            </div>
-          </div>
-          <div class="mapwrap">
-            <div id="map"></div>
-            <div class="mapctl">
-              <button type="button" title="Zoom in" id="ctl-in">&#43;</button>
-              <button type="button" title="Zoom out" id="ctl-out">&#8722;</button>
-              <button type="button" id="ctl-routes" class="on" title="Show all routes">&#10095;</button>
-              <button type="button" id="ctl-fit" title="Fit all routes">&#8962;</button>
-            </div>
-            <div class="legendbar" id="legendbar"></div>
-          </div>
-        </div>
+    <div id="mapFull">
+      <div id="map"></div>
+      <div class="mapctl">
+        <button type="button" title="Zoom in" id="ctl-in">&#43;</button>
+        <button type="button" title="Zoom out" id="ctl-out">&#8722;</button>
+        <button type="button" id="ctl-routes" class="on" title="Show all routes">&#10095;</button>
+        <button type="button" id="ctl-fit" title="Fit all routes">&#8962;</button>
       </div>
-      <div class="routecol">
-        <div class="card">
-          <div class="cardhead">
-            <h2>Route list</h2>
-            <div class="spacer"></div>
-            <span class="note">Click a route to inspect it</span>
-          </div>
-          <div class="tablewrap">
-            <table>
-              <thead><tr><th>Route</th><th>Stops</th><th>Volume</th><th>Value</th><th>Road km</th><th>PDP</th></tr></thead>
-              <tbody id="routeBody"></tbody>
-            </table>
-          </div>
-        </div>
+      <div class="legendbar" id="legendbar"></div>
+    </div>
+
+    <aside id="leftPanel">
+      <div class="lp-head">
+        <b>Route plan</b>
+        <div class="spacer"></div>
+        <button class="btn ghost" id="backBtn" type="button">Inputs</button>
+        <button class="btn primary" id="exportBtn" type="button">Export</button>
       </div>
-    </div>
+      <div class="lp-kpis" id="kpis"></div>
+      <div class="lp-filters">
+        <div class="search">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="color:var(--text-3)"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <input type="text" id="searchBox" list="bpList" placeholder="Search BP ID or customer name" aria-label="Search">
+          <datalist id="bpList"></datalist>
+        </div>
+        <select id="fltRoutes" multiple size="4" title="Hold Ctrl to select several routes; empty = all"></select>
+        <div class="grid two" style="gap:8px">
+          <select id="fltQual" title="Qualifies by">
+            <option value="All" selected>All PDP</option>
+            <option value="Volume">PDP by Volume</option>
+            <option value="Value">PDP by Value</option>
+            <option value="Both">Both</option>
+            <option value="Below">Below PDP</option>
+          </select>
+          <select id="fltStatus" title="Customer status">
+            <option value="All" selected>All customers</option>
+            <option value="Routed">Routed</option>
+            <option value="Unassigned">Unassigned</option>
+            <option value="No-order">No order</option>
+          </select>
+        </div>
+        <label class="chk"><input type="checkbox" id="fltShowAll"> Show all customers on map</label>
+      </div>
+      <div class="lp-routes tablewrap">
+        <div class="lp-routeshead"><span>Route list · click to inspect</span><div class="spacer"></div><span class="note" id="routeCount"></span></div>
+        <table>
+          <thead><tr><th>Route</th><th>Stops</th><th>Volume</th><th>Value</th><th>Road km</th><th>PDP</th></tr></thead>
+          <tbody id="routeBody"></tbody>
+        </table>
+      </div>
+      <div class="lp-exc">
+        <details id="excDetails">
+          <summary id="excCount">Exceptions</summary>
+          <div id="excList"></div>
+        </details>
+      </div>
+      <div class="lp-foot" id="foot"></div>
+    </aside>
 
-    <div class="card" style="margin-top:16px">
-      <div class="cardhead"><h2>Exceptions</h2><span class="note" id="excCount"></span>
-        <div class="spacer"></div><span class="note">Below-PDP routes and unassigned customers</span></div>
-      <div class="cardbody" id="exceptions"></div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <div class="cardhead"><h2>Export</h2><span class="note" id="exportNote">Download the final route plan as Excel</span>
-        <div class="spacer"></div><button class="btn primary" id="exportBtn">Export to Excel</button></div>
-    </div>
-
-    <div class="foot" id="foot"></div>
+    <aside id="drawer" hidden>
+      <div class="drawer-head">
+        <b id="drawerTitle">Route</b>
+        <div class="spacer"></div>
+        <button id="drawerClose" type="button" aria-label="Close details">&times;</button>
+      </div>
+      <div class="detail" id="detail" style="margin:0;border-radius:0"></div>
+    </aside>
   </div>
 </main>
 
