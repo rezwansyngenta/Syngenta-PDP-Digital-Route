@@ -2,7 +2,8 @@
 *.xlsx
 *.xls
 *.csv
-data/
+data/*
+!data/road_matrix_coord.json
 uploads/
 logs/
 web/__fixtures__/
