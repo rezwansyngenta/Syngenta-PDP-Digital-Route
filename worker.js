@@ -2,8 +2,9 @@
 import { buildData } from './lib/build-data.js';
 import { buildMatrix } from './lib/road-distance.js';
 import { generateCandidates } from './lib/candidates.js';
-import { solve } from './lib/solver.js';
+import { solve, lpLowerBound } from './lib/solver.js';
 import { convergeResult } from './lib/converge.js';
+import { runPoolLoop } from './lib/pool-iterate.js';
 
 let highsFactory = null;
 let highsInstance = null;
@@ -99,7 +100,7 @@ self.onmessage = async (ev) => {
     if (signal.aborted) throw new Error('Cancelled');
 
     const mode = params.mode === 'min-trucks' ? 'min-trucks' : 'min-km';
-    const result = await solve(data, candidates, { capMax: cap, vMin, pMin, timeLimit: 60, highs: highsInstance, mode });
+    let result = await solve(data, candidates, { capMax: cap, vMin, pMin, timeLimit: 60, highs: highsInstance, mode });
 
     if ((result.status === 'Optimal' || result.status === 'Time limit reached') && result.routes.length) {
       progress('optimise', 'Converging routes to fixed point…');
@@ -107,6 +108,32 @@ self.onmessage = async (ev) => {
       await convergeResult(result, { dm, cap, vMin, pMin, mode });
       progress('optimise', `Converged: ${result.proof.rounds} improvement round(s)` +
         (result.proof.movedKm > 0 ? `, −${result.proof.movedKm} km` : ''));
+
+      // ILP pool enrichment to fixed point: the converged routes re-enter the
+      // candidate pool so a re-solve can chain multi-move combinations.
+      const loop = await runPoolLoop({
+        data, dm, candidates, base: candidates, first: result,
+        mode, enrichOpts: { capMax: cap, vMin, pMin },
+        solveFn: (pool) => solve(data, pool, { capMax: cap, vMin, pMin, timeLimit: 60, highs: highsInstance, mode }),
+        convergeFn: (res) => convergeResult(res, { dm, cap, vMin, pMin, mode }),
+        onProgress: (m) => progress('optimise', m),
+      });
+      result = loop.result;
+      result.proof.ilpRounds = loop.ilpRounds;
+
+      // LP-relaxation lower bound → honest gap on the badge
+      if (result.status === 'Optimal') {
+        progress('optimise', 'Computing gap bound…');
+        const bound = await lpLowerBound(candidates, {
+          mode, countK: mode === 'min-trucks' ? result.routeCount : null,
+          highs: highsInstance, timeLimit: 60,
+        });
+        if (bound && bound.lb != null && result.totalDistance > 0) {
+          const gapPct = Math.max(0, ((result.totalDistance - bound.lb) / result.totalDistance) * 100);
+          result.proof.lbKm = bound.lb;
+          result.proof.gapPct = Math.round(gapPct * 100) / 100;
+        }
+      }
     }
 
     const wh = data.warehouse;

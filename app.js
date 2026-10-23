@@ -274,13 +274,18 @@ function renderFoot() {
   ];
   const p = RESULT.proof;
   if (p) {
+    let label;
     const seqLabel = p.sequencing === 'exact' ? 'exact stop sequencing' : 'annealed stop sequencing';
     const moved = p.movedKm > 0 ? ` (−${p.movedKm.toLocaleString()} km)` : '';
-    if (p.poolStatus === 'Optimal') {
-      bits.push(`✔ Proven: route-pool ILP optimal − ${seqLabel} − ${p.rounds} improvement round${p.rounds === 1 ? '' : 's'}${moved}`);
-    } else {
-      bits.push(`⚠ Best found (solver time limit) − ${seqLabel} − ${p.rounds} improvement round${p.rounds === 1 ? '' : 's'}${moved}`);
-    }
+    const extras = [];
+    if (p.ilpRounds > 0) extras.push(`${p.ilpRounds} ILP pool round${p.ilpRounds === 1 ? '' : 's'}`);
+    if (p.gapPct != null) extras.push(`gap ≤ ${(Math.ceil(p.gapPct * 100) / 100).toLocaleString()}%`);
+    const roundsTxt = `${p.rounds} improvement round${p.rounds === 1 ? '' : 's'}${moved}`;
+    const poolTxt = p.poolStatus === 'Optimal' ? 'route-pool ILP optimal' : 'best found (solver time limit)';
+    const mark = p.poolStatus === 'Optimal' ? '✔ Proven' : '⚠';
+    label = `${mark}: ${poolTxt} − ${seqLabel} − ${roundsTxt}`;
+    if (extras.length) label += ` · ${extras.join(' · ')}`;
+    bits.push(label);
   }
   $('foot').textContent = bits.join(' · ');
 }

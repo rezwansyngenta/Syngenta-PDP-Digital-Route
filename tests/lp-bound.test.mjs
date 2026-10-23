@@ -18,18 +18,18 @@ const highsRecording = (result) => {
   };
 };
 
-test('buildLpRelaxed: Continuous section, no Binaries, same rows', () => {
+test('buildLpRelaxed: Binaries section dropped (continuous by default), rows kept', () => {
   const lp = buildLpRelaxed(candidates, { mode: 'min-km' });
-  assert.match(lp, /Continuous/);
   assert.doesNotMatch(lp, /Binaries/);
   assert.match(lp, / obj: 21\.000 x0 \+ 9\.000 x1 \+ 8\.000 x2/);
   assert.match(lp, / c0: x0 \+ x1 = 1/);
+  assert.match(lp, /End\s*$/);
 });
 
 test('buildLpRelaxed: countK pins truck count row', () => {
   const lp = buildLpRelaxed(candidates, { mode: 'min-trucks', countK: 2 });
   assert.match(lp, / ccount: x0 \+ x1 \+ x2 = 2/);
-  assert.match(lp, /Continuous/);
+  assert.doesNotMatch(lp, /Binaries/);
 });
 
 test('lpLowerBound: Optimal returns the bound', async () => {
